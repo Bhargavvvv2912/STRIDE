@@ -36,3 +36,4 @@ results/
 workspaces/
 .devenv/
 slurm_logs/
+results_cluster/

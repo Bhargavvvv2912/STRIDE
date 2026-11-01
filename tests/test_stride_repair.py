@@ -169,7 +169,7 @@ E   AttributeError: module 'torch' has no attribute 'foo'
 """
     d = classify(dep, ["tests"])
     assert d.kind == "dependency" and d.implicated[:2] == ["anyio", "starlette"]
-    c = classify(code, ["tests"])
+    c = classify(code, ["tests"], stepped={"torch"})
     assert c.kind == "code" and c.project_frames == ["app/model.py"]
 
 
@@ -224,3 +224,87 @@ def test_lock_blocks_rename_over_test(tmp_path):
     assert result.agent["exit_status"] == "blocked"
     assert (root / "tests" / "test_mod.py").read_text() == TEST
     assert os.access(root / "tests", os.W_OK)          # unlocked afterwards
+
+
+TORCH_SIX = """___________________________ test_ctc_mnist ___________________________
+tests/test_ctc.py:5: in test_ctc_mnist
+    from ctc import mnist_ctc
+ctc/__init__.py:2: in <module>
+    from .ctc_model import CTCModel
+ctc/ctc_model.py:7: in <module>
+    from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
+/tmp/v/lib/python3.9/site-packages/pl_bolts/__init__.py:19: in <module>
+    from pl_bolts import callbacks
+/tmp/v/lib/python3.9/site-packages/pl_bolts/datamodules/async_dataloader.py:9: in <module>
+    from torch._six import string_classes
+E   ModuleNotFoundError: No module named 'torch._six'
+___________________________ test_tmnist ___________________________
+tests/test_datasets.py:20: in test_tmnist
+    from data import get_cluttered_datasets
+E   ImportError: cannot import name 'get_cluttered_datasets' from 'data'
+=========================== short test summary info ============================
+"""
+
+
+def test_triage_blames_the_package_that_raised_not_the_importer():
+    """Project files on the stack only imported pl_bolts; the error is raised
+    inside it, so this is a dependency problem (lightning-bolts must move)."""
+    from stride.triage import classify
+    t = classify(TORCH_SIX, ["tests"], only=["tests/test_ctc.py::test_ctc_mnist"],
+                 stepped={"torch", "torchvision"})
+    assert t.kind == "dependency"
+    assert t.implicated[0] == "pl_bolts"
+    assert "test_tmnist" not in t.raised_in        # an old failure does not vote
+
+
+def test_candidate_pins_try_newer_series_first():
+    from types import SimpleNamespace
+    from stride.triage import candidate_pins
+    versions = ["0.3.4", "0.4.0", "0.5.0", "0.6.0", "0.6.0.post1", "0.7.0"]
+    history = SimpleNamespace(versions=versions, usable_on=lambda v, py: True)
+    index = SimpleNamespace(history=lambda n: history,
+                            upload_dates=lambda n: {"0.7.0": "2099-01-01"})
+    assert candidate_pins(index, "lightning-bolts", "0.5.0", "3.9") == \
+        ["0.6.0.post1", "0.7.0", "0.4.0", "0.3.4"]
+    assert candidate_pins(index, "lightning-bolts", "0.5.0", "3.9", as_of="2026-01-01") == \
+        ["0.6.0.post1", "0.4.0", "0.3.4"]
+
+
+def test_guarded_agent_blocks_repeats_and_undoes_broken_edits(tmp_path):
+    pytest.importorskip("minisweagent")
+    from minisweagent.environments.local import LocalEnvironment
+    from stride.coders import guarded_agent_class
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path)
+    (tmp_path / "m.py").write_text("def f():\n    return 1\n")
+    subprocess.run(["git", "add", "."], cwd=tmp_path)
+    subprocess.run(["git", "-c", "user.email=a@b", "-c", "user.name=a", "commit", "-qm", "x"],
+                   cwd=tmp_path)
+
+    class Model:
+        def __init__(self, commands):
+            self.commands = list(commands)
+        def format_message(self, **kw):
+            return dict(kw)
+        def format_observation_messages(self, message, outputs, template_vars=None):
+            return [{"role": "user", "content": str(o.get("output", ""))} for o in outputs]
+        def get_template_vars(self, **kw):
+            return {}
+        def serialize(self):
+            return {}
+        def query(self, messages):
+            cmd = self.commands.pop(0)
+            return {"role": "assistant", "content": cmd, "extra": {"actions": [{"command": cmd}]}}
+
+    model = Model(["cat m.py", "cat m.py",
+                   "printf 'def f(:\\n  return 2\\n' > m.py",
+                   "head m.py"])
+    agent = guarded_agent_class()(model, LocalEnvironment(cwd=str(tmp_path)),
+                                  system_template="s", instance_template="i", step_limit=4,
+                                  cost_limit=0.0)
+    agent.setup_guards(tmp_path, sys.executable)
+    agent.run("t")
+    texts = [str(m.get("content")) for m in agent.messages]
+    assert agent.blocked == 1 and any("already ran exactly this command" in t for t in texts)
+    assert agent.reverted == 1 and any("was undone" in t for t in texts)
+    assert (tmp_path / "m.py").read_text() == "def f():\n    return 1\n"

@@ -18,6 +18,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from aura.environment import Environment, EnvSpec
+from aura.index import MEASURED_AS_OF
 from aura.reqfile import ReqFile
 from aura.validation import ValidationResult, Validator
 
@@ -210,11 +211,13 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
         traced = triage.run_with_tracebacks(env.python, targets, validator.cwd)
         (out_dir / "tests_before_tb.txt").write_text(traced[-30000:])
         test_dirs = [str(Path(t).parent) if t.endswith(".py") else t for t in targets]
-        verdict = triage.classify(traced, test_dirs + ["tests", "test"])
+        verdict = triage.classify(traced, test_dirs + ["tests", "test"], only=new,
+                                  stepped=set(pins) | set(moved))
         result.triage = asdict(verdict)
         if verdict.kind == "dependency" and index is not None:
-            pinned = _try_transitive_pins(env, verdict.implicated, target, validator,
-                                          index, python_version, out_dir)
+            pinned, passed = _try_transitive_pins(env, verdict.implicated, target, validator,
+                                                  index, python_version, out_dir,
+                                                  stepped=set(pins))
             if pinned:
                 target = target.with_added_pins(pinned)
                 target.save(req_path)
@@ -222,10 +225,16 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
                 result.pins.update(pinned)
                 git(workspace, "add", requirements_file)
                 git(workspace, "commit", "-q", "--amend", "--no-edit")
+            if passed:
                 result.accepted, result.reason = True, "transitive_pin"
                 env.destroy()
                 result.seconds = round(time.time() - started, 1)
                 return _save(result, out_dir)
+            if pinned:   # the agent starts from the moved package
+                before = validator.run(env.python)
+                _, new, _, _ = validator.judge(before)
+                traced = triage.run_with_tracebacks(env.python, targets, validator.cwd)
+                (out_dir / "tests_before_tb.txt").write_text(traced[-30000:])
     frozen_before = env.freeze()
     if validator.kind == "unittest":
         test_command = f"python -m unittest discover -v -s {targets[0]}"
@@ -287,35 +296,136 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
     return _save(result, out_dir)
 
 
-def _try_transitive_pins(env, implicated: list[str], target: ReqFile, validator: Validator,
-                         index, python_version: str, out_dir: Path) -> dict[str, str]:
-    """Pin a transitive package named in the traceback to another release.
+MODULE_TO_DIST = r"""
+import importlib.metadata as md, json
+out = {}
+for d in md.distributions():
+    name = d.metadata["Name"]
+    tops = set()
+    txt = d.read_text("top_level.txt")
+    if txt:
+        tops.update(t.strip() for t in txt.split() if t.strip())
+    for f in d.files or []:
+        part = str(f).split("/")[0]
+        if part.endswith(".py"):
+            part = part[:-3]
+        if part and not part.endswith((".dist-info", ".egg-info", ".data")) and part != "..":
+            tops.add(part)
+    for t in tops:
+        out.setdefault(t, name)
+print(json.dumps(out))
+"""
 
-    Only packages the project does not declare (those belong to the version
-    search). Returns the pins that made the suite pass, or {} after restoring.
+
+def _module_to_dist(python: str) -> dict[str, str]:
+    """Import name -> distribution name in the subject's environment
+    (pl_bolts -> lightning-bolts, PIL -> pillow)."""
+    try:
+        out = subprocess.run([python, "-c", MODULE_TO_DIST], capture_output=True,
+                             text=True, timeout=120)
+        return json.loads(out.stdout or "{}")
+    except Exception:
+        return {}
+
+
+def _norm(name: str) -> str:
+    return name.lower().replace("_", "-").replace(".", "-")
+
+
+def _try_transitive_pins(env, implicated: list[str], target: ReqFile, validator: Validator,
+                         index, python_version: str, out_dir: Path,
+                         stepped: set[str] | None = None) -> tuple[dict[str, str], bool]:
+    """Move a package the failure was raised in to another release.
+
+    Any installed package except the ones being stepped: an undeclared
+    transitive package (anyio under fastapi) or a declared one that has to
+    catch up (lightning-bolts 0.5 still imports torch._six, removed in torch
+    2.0). Every other pin is held, so pip cannot quietly move the step back.
+    Returns (pins, passed): the pins that made the suite pass; else the move that
+    left the fewest new failures, installed, for the agent to finish; else {}.
     """
-    declared = {n.lower().replace("_", "-") for n in target.names()}
-    frozen = {k.lower().replace("_", "-"): v for k, v in env.freeze().items()}
+    stepped = {_norm(n) for n in (stepped or set())}
+    frozen = {_norm(k): v for k, v in env.freeze().items()}
+    modules = {k: _norm(v) for k, v in _module_to_dist(env.python).items()}
+    hold = {_norm(k): v for k, v in target.pins().items()}
     log = []
+    seen = set()
+    best: tuple[int, dict[str, str]] | None = None     # fewest new failures so far
+    start_new = len(validator.judge(validator.run(env.python))[1])
     for name in implicated:
-        dist = name.lower().replace("_", "-")
-        if dist in declared or dist not in frozen:
+        dist = modules.get(name) or _norm(name)
+        if dist in seen or dist in stepped or dist not in frozen:
             continue
+        seen.add(dist)
         current = frozen[dist]
-        for version in triage.candidate_pins(index, dist, current, python_version):
-            out, code = env.pip_install([f"{dist}=={version}"])
-            if code != 0:
-                log.append({"package": dist, "version": version, "install": False})
+        held = [f"{k}=={v}" for k, v in hold.items() if k != dist]
+        for version in triage.candidate_pins(index, dist, current, python_version,
+                                             as_of=MEASURED_AS_OF):
+            moved = _install_moving(env, dist, version, held, hold, stepped, log)
+            if moved is None:
                 continue
             ok, new, _, _ = validator.judge(validator.run(env.python))
-            log.append({"package": dist, "version": version, "install": True,
-                        "accepted": ok, "new_failures": new[:5]})
+            log[-1].update({"accepted": ok, "new_failures": new[:5]})
             if ok:
                 (out_dir / "transitive_search.json").write_text(json.dumps(log, indent=2))
-                return {dist: version}
-        env.pip_install([f"{dist}=={current}"])
+                return moved, True
+            if len(new) < start_new and (best is None or len(new) < best[0]):
+                best = (len(new), moved)
+            _restore(env, hold, frozen, dist, current)
+        _restore(env, hold, frozen, dist, current)
     (out_dir / "transitive_search.json").write_text(json.dumps(log, indent=2))
-    return {}
+    if best:
+        # Fewer failures, not none: keep the move and let the agent fix the rest.
+        keep = dict(hold)
+        keep.update(best[1])
+        env.pip_install([f"{k}=={v}" for k, v in keep.items()])
+        return best[1], False
+    return {}, False
+
+
+def _install_moving(env, dist, version, held, hold, stepped, log):
+    """Install ``dist==version`` holding every pin; if that conflicts, hold only
+    the stepped packages and let pip move what must move with it
+    (lightning-bolts 0.6 needs pytorch-lightning 1.7). Returns all pins that
+    changed, or None when it cannot install."""
+    out, code = env.pip_install([f"{dist}=={version}", *held])
+    entry = {"package": dist, "version": version, "install": code == 0, "held": "all"}
+    if code != 0:   # partners may move, within their own major series
+        same_major = [f"{k}=={v}" if k in stepped else _within_major(k, v)
+                      for k, v in hold.items() if k != dist]
+        out, code = env.pip_install([f"{dist}=={version}", *same_major])
+        entry.update({"install": code == 0, "held": "same major"})
+    if code != 0:
+        loose = [f"{k}=={v}" for k, v in hold.items() if k in stepped and k != dist]
+        out, code = env.pip_install([f"{dist}=={version}", *loose])
+        entry.update({"install": code == 0, "held": "stepped only"})
+    log.append(entry)
+    if code != 0:
+        entry["error"] = out[-400:]
+        return None
+    now = {_norm(k): v for k, v in env.freeze().items()}
+    moved = {dist: version}
+    moved.update({k: now[k] for k, v in hold.items() if k in now and now[k] != v})
+    entry["moved"] = moved
+    return moved
+
+
+def _within_major(name: str, version: str) -> str:
+    """``name>=version,<next major`` (for 0.x, the next minor is the break)."""
+    from aura.reqfile import safe_parse_version
+    p = safe_parse_version(version)
+    if p is None or not p.release:
+        return f"{name}=={version}"
+    r = p.release
+    upper = f"0.{(r[1] if len(r) > 1 else 0) + 1}" if r[0] == 0 else f"{r[0] + 1}"
+    return f"{name}>={version},<{upper}"
+
+
+def _restore(env, hold, frozen, dist, current):
+    """Back to the step's environment after a candidate that did not help."""
+    pins = dict(hold)
+    pins[dist] = current
+    env.pip_install([f"{k}=={v}" for k, v in pins.items()])
 
 
 def _save(result: RepairResult, out_dir: Path) -> RepairResult:
