@@ -59,6 +59,22 @@ class FixingAgent(CodeAgent):
         return AgentRun(exit_status="Submitted", steps=1)
 
 
+class RenamingAgent(CodeAgent):
+    """Cheats the way `sed -i` does: write a new file, rename it over the test."""
+    name = "fake-rename"
+
+    def run(self, task, workdir, env, out_dir):
+        import os
+        tmp = workdir / "tests" / "tmp_edit"
+        try:
+            tmp.write_text("def test_newer():\n    assert True\n")
+            os.replace(tmp, workdir / "tests" / "test_mod.py")
+            outcome = "renamed"
+        except PermissionError:
+            outcome = "blocked"
+        return AgentRun(exit_status=outcome, steps=1)
+
+
 class CheatingAgent(CodeAgent):
     name = "fake-cheat"
 
@@ -194,3 +210,17 @@ def test_carry_forward_keeps_barriers_outside_the_scope():
     pins = {"torch": "2.0.0", "numpy": "1.26.4", "timm": "0.6.0"}
     kept = carry_forward(old, fresh, pins)
     assert [(b.package, b.current) for b in kept] == [("torch", "2.0.0"), ("numpy", "1.26.4")]
+
+
+@needs_network
+def test_lock_blocks_rename_over_test(tmp_path):
+    root = make_project(tmp_path / "toy")
+    result = repair_round(
+        label="packaging 21.3 -> 22.0", project="toy", workspace=root,
+        requirements_file="requirements.txt", pins={"packaging": "22.0"},
+        moved=["packaging"], config=config_for(root),
+        spec=EnvSpec(python=sys.executable), baseline={"failing": [], "counts": {}},
+        agent=RenamingAgent(), out_dir=tmp_path / "out")
+    assert result.agent["exit_status"] == "blocked"
+    assert (root / "tests" / "test_mod.py").read_text() == TEST
+    assert os.access(root / "tests", os.W_OK)          # unlocked afterwards

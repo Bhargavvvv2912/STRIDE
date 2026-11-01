@@ -69,9 +69,22 @@ class Lock:
         for p in self.paths:
             self.modes[str(p)] = p.stat().st_mode
             p.chmod(stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+        # Read-only files are not enough: `sed -i` writes a new file and renames
+        # it over the old one, which only needs the folder to be writable. So
+        # the folders holding test files are locked too (never the project root,
+        # where the agent must edit source).
+        self.dirs = sorted({p.parent for p in self.paths if p.parent != self.root},
+                           key=lambda d: len(d.parts), reverse=True)
+        for d in self.dirs:
+            self.modes[str(d)] = d.stat().st_mode
+            d.chmod(stat.S_IRUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
+                    | stat.S_IROTH | stat.S_IXOTH)
         return self
 
     def __exit__(self, *exc) -> None:
+        for d in reversed(getattr(self, "dirs", [])):
+            if d.exists():
+                d.chmod(self.modes.get(str(d), 0o755))
         for p in self.paths:
             if p.exists():
                 p.chmod(self.modes.get(str(p), 0o644))
