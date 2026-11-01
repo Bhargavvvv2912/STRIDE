@@ -13,7 +13,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=48G
-#SBATCH --time=16:00:00
+#SBATCH --time=12:00:00
 #SBATCH --output=slurm_logs/stride_%j.out
 
 set -uo pipefail
