@@ -16,6 +16,7 @@ from pathlib import Path
 
 CONFIG_FILES = ("pytest.ini", "setup.cfg", "tox.ini", "pyproject.toml", "conftest.py",
                 "noxfile.py")
+TEST_SUFFIXES = {".py", ".cfg", ".ini", ".toml", ".yaml", ".yml", ".json", ".txt"}
 SKIP_PATTERN = re.compile(
     r"^\+.*(pytest\.skip|pytest\.mark\.skip|pytest\.mark\.xfail|pytest\.xfail|"
     r"unittest\.skip|@skip|importorskip)", re.MULTILINE)
@@ -27,7 +28,10 @@ def protected_files(root: Path, test_targets: list[str], requirements: list[str]
     for target in test_targets:
         path = root / target.split("::")[0]
         if path.is_dir():
-            files.update(p for p in path.rglob("*") if p.is_file())
+            # Test code and config only. Suites write data, caches and outputs
+            # into their own folders; those changing is not tampering.
+            files.update(p for p in path.rglob("*") if p.is_file()
+                         and p.suffix in TEST_SUFFIXES and "__pycache__" not in p.parts)
         elif path.is_file():
             files.add(path)
     for pattern in ("test_*.py", "*_test.py", "conftest.py"):
@@ -39,8 +43,14 @@ def protected_files(root: Path, test_targets: list[str], requirements: list[str]
     for req in requirements:
         if (root / req).is_file():
             files.add(root / req)
-    return sorted(p for p in files if not any(part.startswith(".aura") or part.startswith(
-        ".stride") for part in p.relative_to(root).parts))
+    # Only files the project committed: anything a test run created (datasets,
+    # caches, outputs) is untracked, so it can never count as tampering.
+    tracked = set(subprocess.run(["git", "ls-files"], cwd=root, capture_output=True,
+                                 text=True).stdout.splitlines())
+    return sorted(p for p in files
+                  if (not tracked or str(p.relative_to(root)) in tracked)
+                  and not any(part.startswith(".aura") or part.startswith(".stride")
+                              for part in p.relative_to(root).parts))
 
 
 def digest(paths: list[Path]) -> dict[str, str]:

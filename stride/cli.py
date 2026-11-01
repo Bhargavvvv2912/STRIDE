@@ -50,7 +50,8 @@ def cmd_run(args) -> None:
         kwargs["first"] = args.first
     if args.arm == "stride":
         kwargs.update(max_rounds=args.rounds, barriers_per_round=args.barriers_per_round,
-                      step=args.step, first=args.first, skip_aura=args.skip_aura)
+                      step=args.step, first=args.first, skip_aura=args.skip_aura,
+                      rerun=args.rerun)
     with subject_environment(subject):
         summary = ARMS[args.arm](run, **kwargs)
     print(json.dumps({k: summary.get(k) for k in ("subject", "arm", "agent")}, indent=1))
@@ -89,6 +90,8 @@ def main(argv=None) -> None:
     r.add_argument("--step", default="smallest", choices=["smallest", "aura_plan"],
                    help="jump size across a barrier (stride arm)")
     r.add_argument("--first", default="", help="package whose barrier to try first")
+    r.add_argument("--rerun", default="scoped", choices=["scoped", "full"],
+                   help="after a code change, search only affected packages (scoped) or all")
     r.add_argument("--skip-aura", action="store_true",
                    help="stop after the first code change (smoke test)")
     r.add_argument("--out", default=str(ROOT / "results"))

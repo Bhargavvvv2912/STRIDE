@@ -155,3 +155,42 @@ E   AttributeError: module 'torch' has no attribute 'foo'
     assert d.kind == "dependency" and d.implicated[:2] == ["anyio", "starlette"]
     c = classify(code, ["tests"])
     assert c.kind == "code" and c.project_frames == ["app/model.py"]
+
+
+def test_scoped_agent_widens_through_coupled_packages():
+    from types import SimpleNamespace
+    from stride.scoped import make_scoped_agent
+
+    Scoped = make_scoped_agent({"torch"})
+    agent = Scoped.__new__(Scoped)                       # skip AURA's heavy __init__
+    agent.graph = SimpleNamespace(couples=lambda: {frozenset(("torch", "torchvision")),
+                                                   frozenset(("numpy", "pandas"))})
+    agent.log = SimpleNamespace(emit=lambda *a, **k: None, bump=lambda *a, **k: None)
+    names = ["torch", "torchvision", "numpy", "pandas", "timm"]
+    cands = [SimpleNamespace(name=n) for n in names]
+    from aura.agent import AuraAgent
+    original = AuraAgent.build_candidates
+    AuraAgent.build_candidates = lambda self, r, s, st: list(cands)
+    try:
+        pins = {"torch": "2.0.0", "torchvision": "0.15.1", "numpy": "1.26.4",
+                "pandas": "2.0.0", "timm": "0.5.4"}
+        req = SimpleNamespace(pins=lambda: dict(pins))
+        kept = [c.name for c in agent.build_candidates(req, {}, {})]
+        assert kept == ["torch", "torchvision"]          # numpy, pandas, timm skipped
+        pins["torchvision"] = "0.16.0"                     # moved: no new neighbours
+        kept = [c.name for c in agent.build_candidates(req, {}, {})]
+        assert kept == ["torch", "torchvision"]
+    finally:
+        AuraAgent.build_candidates = original
+
+
+def test_carry_forward_keeps_barriers_outside_the_scope():
+    from stride.barriers import Barrier
+    from stride.scoped import carry_forward
+    old = [Barrier("torch", "1.11.0", "2.0.0", {}, []),
+           Barrier("numpy", "1.26.4", "2.0.0", {}, []),
+           Barrier("timm", "0.5.4", "0.6.5", {}, [])]
+    fresh = [Barrier("torch", "2.0.0", "2.3.0", {}, [])]
+    pins = {"torch": "2.0.0", "numpy": "1.26.4", "timm": "0.6.0"}
+    kept = carry_forward(old, fresh, pins)
+    assert [(b.package, b.current) for b in kept] == [("torch", "2.0.0"), ("numpy", "1.26.4")]

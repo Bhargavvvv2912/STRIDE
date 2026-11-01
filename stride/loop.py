@@ -26,6 +26,7 @@ from evaluation.subjects import Subject
 from stride.barriers import (Barrier, barriers_from_run, baseline_from_log, read_log,
                              smallest_step)
 from stride.coders import CodeAgent
+from stride.scoped import carry_forward, scoped_search, seed_for
 from stride.repair import RepairResult, git, repair_round
 
 
@@ -115,7 +116,8 @@ def _first_commit(root: Path) -> str:
 
 def run_stride(run: Run, *, max_rounds: int = 4, barriers_per_round: int = 3,
                aura_arm: str = "aura_full_qwen14b", timeout_s: int = 6 * 3600,
-               step: str = "smallest", first: str = "", skip_aura: bool = False) -> dict:
+               step: str = "smallest", first: str = "", skip_aura: bool = False,
+               rerun: str = "scoped") -> dict:
     """AURA -> code change -> AURA ..., one barrier at a time."""
     log, result, reqs = run.aura_files(aura_arm)
     run.prepare(reqs)
@@ -123,10 +125,11 @@ def run_stride(run: Run, *, max_rounds: int = 4, barriers_per_round: int = 3,
     baseline = baseline_from_log(read_log(log))
     run.summary["baseline_failing"] = baseline["failing"]
     tried: set[str] = set()
+    known = barriers_from_run(log, result, reqs)
+    run.summary["rerun"] = rerun
 
     for r in range(1, max_rounds + 1):
-        barriers = [b for b in barriers_from_run(log, result, reqs)
-                    if f"{b.package}@{b.current}" not in tried]
+        barriers = [b for b in known if f"{b.package}@{b.current}" not in tried]
         if first:   # a barrier named on the command line goes first, in round 1
             barriers.sort(key=lambda b: b.package != first.lower())
             first = ""
@@ -160,14 +163,21 @@ def run_stride(run: Run, *, max_rounds: int = 4, barriers_per_round: int = 3,
         reqs = run.out / f"{stem}.requirements.txt"
         arm = _aura_arm(aura_arm)
         run.subject.frozen_baseline = str(run.out / f"{stem}.baseline.txt")
-        aura = run_aura_arm(run.subject, arm, run.workspace, log, index=run.index,
-                            timeout_s=timeout_s, pip_cache=run.pip_cache)
+        accepted = round_info["attempts"][-1]
+        scope = seed_for(crossed.package, crossed.plan, accepted.get("pins"))
+        round_info["scope_seed"] = sorted(scope)
+        search = scoped_search(scope) if rerun == "scoped" else _nullcontext()
+        with search:
+            aura = run_aura_arm(run.subject, arm, run.workspace, log, index=run.index,
+                                timeout_s=timeout_s, pip_cache=run.pip_cache)
         result.write_text(json.dumps(asdict(aura), indent=2) + "\n")
         shutil.copy(run.workspace / run.subject.requirements_file, reqs)
         git(run.workspace, "add", run.subject.requirements_file)
         git(run.workspace, "commit", "-qm", f"STRIDE: AURA round {r}", "--allow-empty")
         round_info["aura"] = {"outcome": aura.outcome, "updated": aura.updated,
                               "wall_clock_s": aura.wall_clock_s}
+        fresh = barriers_from_run(log, result, reqs)
+        known = carry_forward(known, fresh, run.pins())
         (run.out / "summary.json").write_text(json.dumps(run.summary, indent=2) + "\n")
     return run.finish(start)
 
@@ -206,6 +216,11 @@ def run_all_latest(run: Run, *, aura_arm: str = "aura_full_qwen14b") -> dict:
 
 
 ARMS = {"stride": run_stride, "pin_latest": run_pin_latest, "all_latest": run_all_latest}
+
+
+def _nullcontext():
+    import contextlib
+    return contextlib.nullcontext()
 
 
 def _aura_arm(name: str):
