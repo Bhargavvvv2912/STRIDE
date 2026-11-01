@@ -42,9 +42,10 @@ export PIP_CACHE="$LOCAL_DISK/aura-pip-cache-$USER"
 mkdir -p "$AURA_VENV_ROOT" "$STRIDE_WORK" "$PIP_CACHE"
 
 # Ollama on a port of this job's own. The code agent sends long transcripts,
-# so the context window is 32k (Ollama's default would cut the front off).
+# so the context window is 64k: at 32k the transcript of one concept-transformer
+# attempt reached ~31k tokens, and past the window Ollama drops the front (the task).
 export OLLAMA_HOST="127.0.0.1:$((11500 + SLURM_JOB_ID % 5000))"
-export OLLAMA_CONTEXT_LENGTH="${OLLAMA_CONTEXT_LENGTH:-32768}"
+export OLLAMA_CONTEXT_LENGTH="${OLLAMA_CONTEXT_LENGTH:-65536}"
 export OLLAMA_LOAD_TIMEOUT="${OLLAMA_LOAD_TIMEOUT:-20m}"   # server settings: before `serve`
 export OLLAMA_KEEP_ALIVE="${OLLAMA_KEEP_ALIVE:-24h}"
 "$OLLAMA_BIN" serve > "slurm_logs/ollama_stride_$SLURM_JOB_ID.log" 2>&1 &

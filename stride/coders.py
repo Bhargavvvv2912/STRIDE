@@ -61,7 +61,7 @@ class MiniSweAgent(CodeAgent):
 
     def __init__(self, model: str = "ollama_chat/qwen2.5-coder:14b", step_limit: int = 60,
                  wall_time_s: int = 3600, command_timeout_s: int = 900,
-                 num_ctx: int = 32768, temperature: float = 0.0):
+                 num_ctx: int = 65536, temperature: float = 0.0):
         self.model = model
         self.step_limit = step_limit
         self.wall_time_s = wall_time_s
