@@ -1,0 +1,134 @@
+{
+  "subject": "concept-transformer",
+  "arm": "aura_full_qwen14b",
+  "outcome": "modernized",
+  "updated": {
+    "torch": [
+      "1.10.0",
+      "1.11.0"
+    ],
+    "torchvision": [
+      "0.11.1",
+      "0.12.0"
+    ],
+    "pytorch-lightning": [
+      "1.4.8",
+      "1.6.5.post0"
+    ],
+    "torchmetrics": [
+      "0.5.0",
+      "1.5.2"
+    ],
+    "numpy": [
+      "1.22.0",
+      "1.26.4"
+    ],
+    "pandas": [
+      "1.3.3",
+      "2.3.3"
+    ],
+    "timm": [
+      "0.4.12",
+      "0.5.4"
+    ],
+    "matplotlib": [
+      "3.5.1",
+      "3.9.4"
+    ],
+    "albumentations": [
+      "1.0.3",
+      "1.2.1"
+    ],
+    "setuptools": [
+      "59.5.0",
+      "81.0.0"
+    ],
+    "scipy": [
+      "1.7.1",
+      "1.13.1"
+    ],
+    "lightning-bolts": [
+      "0.3.4",
+      "0.5.0"
+    ]
+  },
+  "reason": "",
+  "wall_clock_s": 5483.25,
+  "log_path": "results/concept-transformer/concept-transformer__aura_full_qwen14b.jsonl",
+  "counters": {
+    "attempts": 261,
+    "attempts_baseline": 1,
+    "install_seconds": 10551.047560691833,
+    "baseline_failing_tests": 1,
+    "passes": 3,
+    "prefiltered_versions": 217,
+    "dry_run_rejections": 290,
+    "routing_skipped_linear": 1,
+    "probes_saved": 24,
+    "greedy_dry_run_rejections": 14,
+    "attempts_greedy": 5,
+    "llm_calls": 46,
+    "prompt_tokens": 59303,
+    "completion_tokens": 3204,
+    "llm_cost_usd": 0.0,
+    "llm_seconds": 61.477,
+    "attempts_llm": 28,
+    "attempts_linear": 227,
+    "batched_probes": 238,
+    "batches": 44,
+    "batch_confirmations": 7,
+    "llm_rejected_versions": 36,
+    "probes_deduplicated": 61,
+    "greedy_skipped_no_group": 7
+  },
+  "version_age_before": {
+    "n_packages": 13,
+    "mean_releases_behind": 48.846,
+    "median_releases_behind": 35,
+    "max_releases_behind": 179,
+    "at_latest": 1,
+    "at_latest_pct": 7.69,
+    "per_package": {
+      "torch": 33,
+      "torchvision": 34,
+      "pytorch-lightning": 90,
+      "lightning-bolts": 5,
+      "torchmetrics": 58,
+      "scipy": 32,
+      "numpy": 54,
+      "pandas": 35,
+      "setuptools": 179,
+      "albumentations": 38,
+      "timm": 43,
+      "matplotlib": 34,
+      "epyc": 0
+    },
+    "unknown": []
+  },
+  "version_age_after": {
+    "n_packages": 13,
+    "mean_releases_behind": 22.385,
+    "median_releases_behind": 14,
+    "max_releases_behind": 70,
+    "at_latest": 1,
+    "at_latest_pct": 7.69,
+    "per_package": {
+      "torch": 30,
+      "torchvision": 31,
+      "pytorch-lightning": 70,
+      "lightning-bolts": 3,
+      "torchmetrics": 13,
+      "scipy": 14,
+      "numpy": 31,
+      "pandas": 7,
+      "setuptools": 4,
+      "albumentations": 35,
+      "timm": 42,
+      "matplotlib": 11,
+      "epyc": 0
+    },
+    "unknown": []
+  },
+  "error": "",
+  "baseline_stage": "frozen"
+}

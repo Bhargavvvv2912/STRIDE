@@ -1,0 +1,34 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+
+# AURA v2 evaluation harness
+.devenv/
+.workspaces/
+.repo_cache/
+results/
+METRICS.md
+.aura_probe_*/
+.aura_dryrun*/
+.aura_arm_venv/
+.aura_posthoc_venv/
+aura_run.jsonl
+
+# screening scratch (clones and venvs); screening.jsonl is kept
+screening/repos/
+screening/work/
+
+# Slurm job output
+slurm_logs/
+
+# Screening scratch: clones and per-candidate virtualenvs, recreated on demand.
+screening/repos/
+screening/work/
+# Candidate shortlists are inputs to a single screening run; the verdicts in
+# screening.jsonl are the record worth keeping.
+screening/candidates*.txt
+screening/to_screen*.txt
+screening/rescreen*.txt
+data/ft/
+dist/

@@ -1,0 +1,2026 @@
+[
+  {
+    "name": "mean-review-collector",
+    "url": "https://github.com/Neo-Hao/mean-review-collector",
+    "commit": "3d2ccda2bebbe94b01ce7cf1e72dc69a7e774f17",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite (19 tests), unmodified. pytest is pinned in requirements.txt. No services needed.",
+    "screened_date": "2026-09-16",
+    "commit_date": "2021-05-07"
+  },
+  {
+    "name": "flask-dj",
+    "url": "https://github.com/AlexandrovRoman/Flask-DJ",
+    "commit": "ecf6cb05a8115641cab6634e8d004801a96c314c",
+    "commit_date": "2020-04-14",
+    "domain": "web-tooling",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/project_creator.py"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite (24 tests), unmodified. tests/manage.py is excluded: it shells out to a hardcoded path from the author's own machine (C:\\\\Users\\\\AlexandrovRoman\\\\...\\\\venv\\\\Scripts\\\\python), so its 6 tests fail on every machine but that one and measure nothing about dependencies. tests/project_creator.py is self-contained: it scaffolds projects in a temporary directory and asserts on the generated files. The requirements file pins Flask 1.1.1 but not Jinja2, so it installs Jinja2 3.x today and dies on 'cannot import name escape'; the baseline is therefore reconstructed at the commit date (28 packages dated back), which passes 24/24.",
+    "screened_date": "2026-09-20"
+  },
+  {
+    "name": "test-flask",
+    "url": "https://github.com/rafegal/test-flask",
+    "commit": "5a40116788de",
+    "commit_date": "2020-01-28",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test_app.py"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite (5 tests), unmodified. Pins only Flask, pytest and coverage, so the baseline is reconstructed at the commit date (10 packages). Upgrading everything to the newest releases also passes: included as a subject where no search is needed, so the comparison is not restricted to cases the baselines fail.",
+    "screened_date": "2026-09-21"
+  },
+  {
+    "name": "sayhup",
+    "url": "https://github.com/boxoforanmore/SayHup",
+    "commit": "381abb8a5f82",
+    "commit_date": "2020-08-16",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test_routes.py"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite (9 tests), unmodified. Baseline reconstructed at the commit date (10 packages). The naive upgrade also passes.",
+    "screened_date": "2026-09-21"
+  },
+  {
+    "name": "swiftenv-api",
+    "url": "https://github.com/kylef/swiftenv-api",
+    "commit": "a811a3815981",
+    "commit_date": "2022-09-26",
+    "domain": "web-api",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite (6 tests), unmodified. Its declared requirements still install as written, so no reconstruction is needed. It does not declare pytest, so the runner is installed by environment_setup at the version current on the commit date (7.1.3): the runner is not part of the dependency set being measured, and pinning it keeps it from drifting between probes. The naive upgrade also passes.",
+    "screened_date": "2026-09-21",
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "term-image",
+    "url": "https://github.com/AnonymouX47/term-image",
+    "commit": "a40a12bb0a12",
+    "commit_date": "2025-04-14",
+    "domain": "terminal-graphics",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite (1210 tests), unmodified, the largest oracle in the sample by an order of magnitude. Its declared requirements install as written, so no reconstruction is needed. The naive upgrade breaks: urwid 2.4 moved raw_display to urwid.display.raw, and the suite turns the deprecation into an error. The project is a package and is installed as one so its own tests can import it.",
+    "screened_date": "2026-09-22"
+  },
+  {
+    "name": "scanvix",
+    "url": "https://github.com/ASWINMS07/ScanVIX",
+    "commit": "b8bb93f91298",
+    "commit_date": "2026-08-25",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.13",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite (152 tests), unmodified. Declared requirements install as written on Python 3.13. The naive upgrade also passes, so every arm is expected to tie; included because excluding such subjects would restrict the comparison to the cases where the baselines fail.",
+    "screened_date": "2026-09-22"
+  },
+  {
+    "name": "find-that-postcode",
+    "url": "https://github.com/kanedata/find-that-postcode",
+    "commit": "a49cd769c4a3",
+    "commit_date": "2026-02-24",
+    "domain": "geodata-api",
+    "is_ml_research": false,
+    "python_version": "3.12",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite (47 tests), unmodified, all passing at the declared requirements. The naive upgrade breaks five of them: the Elasticsearch client's API moved and the project's own test double no longer matches it.",
+    "screened_date": "2026-09-22"
+  },
+  {
+    "name": "linebot-test",
+    "url": "https://github.com/brian0913579/linebot.test",
+    "commit": "68a8ea29e0e3",
+    "commit_date": "2026-06-30",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.13",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite (140 tests), unmodified, all passing at the declared requirements and again after the naive upgrade: a subject where no search is needed and every arm is expected to tie.",
+    "screened_date": "2026-09-22"
+  },
+  {
+    "name": "lung-cancer-detection",
+    "url": "https://github.com/nordszamora/lung-cancer-detection",
+    "commit": "b456baf68b82",
+    "commit_date": "2025-04-14",
+    "domain": "ml-application",
+    "is_ml_research": false,
+    "python_version": "3.13",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 14 tests pass and one fails at the declared requirements, and that failure is recorded and tolerated, the passing tests being the oracle. The naive upgrade breaks it outright -- the model was pickled by an older scikit-learn and a newer one cannot unpickle it, which is the kind of breakage only executing the tests can find.",
+    "screened_date": "2026-09-22"
+  },
+  {
+    "name": "pylesa",
+    "url": "https://github.com/andrewlyden/PyLESA",
+    "commit": "0691d63c8d8c",
+    "commit_date": "2024-07-11",
+    "domain": "energy-simulation",
+    "is_ml_research": false,
+    "python_version": "3.12",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite (91 tests), unmodified. The naive upgrade breaks two of them on a UnicodeDecodeError. The slowest oracle in the sample at roughly three minutes a run, so every probe costs minutes rather than seconds: expect hours per arm.",
+    "screened_date": "2026-09-22",
+    "included": false,
+    "rejection_reason": "too_large",
+    "rejection_note": "Dropped by the authors on 2026-09-28, before any Dependabot arm was set up. The slowest oracle in the sample, about three minutes per test run, so each arm takes hours."
+  },
+  {
+    "name": "age-of-empires-api",
+    "url": "https://github.com/aalises/age-of-empires-II-api",
+    "commit": "3ec582fa0ebd",
+    "commit_date": "2024-08-11",
+    "domain": "web-api",
+    "is_ml_research": false,
+    "python_version": "3.12",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite (7 tests), unmodified, passing before and after the naive upgrade: a tie is expected. A small oracle over 41 pins, so it says more about whether an arm breaks the project than about how well it modernises it.",
+    "screened_date": "2026-09-22"
+  },
+  {
+    "name": "sms-code-sync",
+    "url": "https://github.com/hxabcd/sms-code-sync",
+    "commit": "3aa4194c0f66",
+    "commit_date": "2026-09-13",
+    "domain": "utility",
+    "is_ml_research": false,
+    "python_version": "3.13",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite (5 tests), unmodified, passing before and after the naive upgrade. The newest commit in the sample.",
+    "screened_date": "2026-09-22"
+  },
+  {
+    "name": "missing-person-detector",
+    "url": "https://github.com/Arjun-ys/Missing-Person-Detector",
+    "commit": "3a22b7bd0b07",
+    "commit_date": "2026-07-08",
+    "domain": "ml-application",
+    "is_ml_research": false,
+    "python_version": "3.11",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test_api.py"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest file (5 tests), unmodified, passing before and after the naive upgrade.",
+    "screened_date": "2026-09-22",
+    "included": false,
+    "rejection_reason": "requires_credentials",
+    "rejection_note": "Dropped after running. face_recognition calls quit() at import when its companion model data is absent, and that data installs from a git URL rather than PyPI: the suite ran in the screening container and could not start on the cluster, so its five passing tests were a property of the screening machine. Forcing it with environment_setup would mean authoring the environment rather than using the project's own."
+  },
+  {
+    "name": "nba2k25-plp",
+    "url": "https://github.com/JonasDockx/NBA2K25_PLP",
+    "commit": "bb21da7e8a00",
+    "commit_date": "2026-08-28",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.13",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 199 tests pass while 3 fail and 64 error before anything is upgraded, and those are recorded and tolerated -- the 199 are the oracle. The errors are tests needing a browser session the checkout does not provide. A weaker oracle than its test count suggests, and reported as such.",
+    "screened_date": "2026-09-22"
+  },
+  {
+    "name": "pytorch-ocr",
+    "url": "https://github.com/GabrielDornelles/pytorch-ocr",
+    "commit": "01b46b121ae1ffb7a504966a6e9b6b2d6c1204d0",
+    "commit_date": "2023-11-11",
+    "domain": "ml-research",
+    "is_ml_research": true,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 44 tests pass at baseline and 44 after upgrading everything, so this is a tie-expected subject. It is kept for its dependency shape rather than its difficulty -- torch 1.12.0 and torchvision 0.13.0 pin each other, so a version of one is only reachable together with a version of the other, which is what the co-resolution tier exists for.",
+    "screened_date": "2026-09-23"
+  },
+  {
+    "name": "flask-restful-example",
+    "url": "https://github.com/erdem/flask-restful-example",
+    "commit": "26a8b1de142229fc6e0bcd672f0434e858c2f410",
+    "commit_date": "2020-07-02",
+    "domain": "web-api",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 13 tests pass at baseline in 11 seconds. The declared pins no longer install on their own, so the baseline is the reconstruction of their closure at the commit date -- 13 further packages, dated back. Upgrading everything naively breaks the suite with TypeError: __init__() got an unexpected keyword argument 'order_by', a Flask-SQLAlchemy API that was removed.",
+    "screened_date": "2026-09-23"
+  },
+  {
+    "name": "pacman",
+    "url": "https://github.com/Shtomuch/PacMan",
+    "commit": "87495ac5fb3ec1bf3ff81c411526b80ba1219914",
+    "commit_date": "2025-04-04",
+    "domain": "game",
+    "is_ml_research": false,
+    "python_version": "3.13",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 102 tests pass at baseline in about 2 seconds, and 102 after upgrading everything, so this is a tie-expected subject in the current stratum.",
+    "screened_date": "2026-09-24"
+  },
+  {
+    "name": "hackton-intgest",
+    "url": "https://github.com/Xamu-192/HACKTON-2026-INTGEST",
+    "commit": "d2c6699186650e601a4f6c44ef5ba8de36f99961",
+    "commit_date": "2026-03-25",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.13",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 170 tests pass at baseline, while 1 fails and 16 error before anything is upgraded -- recorded and tolerated, as every arm is judged against the baseline. The errors are browser tests with no browser in the environment. The naive upgrade also passes: tie-expected, current stratum. The suite takes about two minutes.",
+    "screened_date": "2026-09-24"
+  },
+  {
+    "name": "lambda-chaos-injection",
+    "url": "https://github.com/adhorn/aws-lambda-chaos-injection",
+    "commit": "4d57ad85e0c9692f10e0d237af1bda47cef64029",
+    "commit_date": "2024-11-07",
+    "domain": "library",
+    "is_ml_research": false,
+    "python_version": "3.8",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "environment": {
+      "AWS_DEFAULT_REGION": "us-east-1",
+      "AWS_ACCESS_KEY_ID": "testing",
+      "AWS_SECRET_ACCESS_KEY": "testing"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: all 17 tests pass at baseline. They replay recorded AWS responses (placebo), so no network or account is used; boto3 only needs a region and the conventional placeholder keys to start. Pins date from 2021 on a 2024 commit, and boto3, botocore and s3transfer pin each other in lockstep. Upgrading everything at once also passes, so tie-expected against pip_upgrade. Not installed as a package: its setup.py imports the module to read the version, which imports ssm_cache, so building it in pip's isolated environment fails -- every arm recorded project_build_failure. The tests import the module from the checkout and need no install; screening ran all 17 that way.",
+    "screened_date": "2026-09-24"
+  },
+  {
+    "name": "fork-recipes",
+    "url": "https://github.com/mikebgrep/fork.recipes",
+    "commit": "1e3018ae58bbc75e3dc1589c98fa1bd277324ad6",
+    "commit_date": "2026-08-13",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.12",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/forkrecipes_tests.py"
+    },
+    "environment": {
+      "DJANGO_SECRET": "test-only-not-a-secret",
+      "SERVICE_BASE_URL": "http://service.test"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 29 tests pass at baseline and 2 fail before anything is upgraded, recorded and tolerated. Django needs a secret key to start and the tests mock the recipe service they call, so both variables are placeholders and nothing leaves the machine. SQLite. Upgrading everything also passes: tie-expected.",
+    "screened_date": "2026-09-24"
+  },
+  {
+    "name": "htb-api",
+    "url": "https://github.com/clubby789/htb-api",
+    "commit": "80e8bbf8e801ce9ae203370b9db6e35a8df2824a",
+    "commit_date": "2022-12-22",
+    "domain": "library",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 52 tests pass at baseline in about 3 seconds. They run against a 1,260-line mock of the Hack The Box API, a Flask app the suite starts on a random localhost port, so nothing leaves the machine and parallel probes do not collide. Upgrading everything naively breaks that mock server -- it sets WERKZEUG_RUN_MAIN, which newer Werkzeug rejects -- and 48 tests error on connection refused: a keep.",
+    "screened_date": "2026-09-24"
+  },
+  {
+    "name": "negativei2-server",
+    "url": "https://github.com/deeper-blue/negativei2-server",
+    "commit": "e236972994d6725336a0c2c7d1dfa32a189ad3b0",
+    "commit_date": "2019-04-02",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.7",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test"
+    },
+    "environment": {
+      "CI": "true",
+      "FIREBASE_SERVICE_ACCOUNT_JSON": "{}"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 185 pass and 2 skip at baseline in about 30 seconds. The Flask/Socket.IO chess server reads a Firebase service account from FIREBASE_SERVICE_ACCOUNT_JSON and skips Firebase initialisation when CI=true; the tests swap Firestore for an in-repo mock client, so the placeholder '{}' is enough and nothing leaves the machine. Its 15 direct pins date from 2019; the unpinned transitive set is reconstructed at the commit date. Upgrading everything naively breaks test collection (AttributeError: type object 'Server' has no attribute 'reason', from the Socket.IO stack) and 11 modules error: a keep. Not a package (no setup.py); tests import server from the checkout.",
+    "screened_date": "2026-09-27",
+    "included": false,
+    "rejection_reason": "too_large",
+    "rejection_note": "Dropped by the authors on 2026-09-28 for exceeding the compute budget: reconstruction gives a 51-package environment on Python 3.7, and 8 of the 9 AURA arms hit the 6-hour limit per arm. Where each arm stopped depended on its node's install speed (79-169 s per probe), not on the method, so the arms cannot be compared head to head. Decided on runtime alone, the same for every arm."
+  },
+  {
+    "name": "flask-huey-example",
+    "url": "https://github.com/pjcunningham/flask-huey-example",
+    "commit": "44dc8abc8319271682ed4878513d59cb354917e8",
+    "commit_date": "2023-02-02",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/tests_huey.py"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 12 of its 24 tests pass at baseline in about a second. They build huey queues from Flask config and inspect the resulting storage settings; the connection pool points at an unroutable address and is never opened, so no Redis server is needed. The other 12 fail at baseline on every interpreter tried: the test URL 'redis://[:password]@localhost:9000/1' is rejected by current Python's URL parsing ('' does not appear to be an IPv4 or IPv6 address) -- test data, not a dependency, and tolerated identically by every arm. Its 11 pins date from 2017-2019 on a 2023 commit. Upgrading everything naively fails all 24 with huey.exceptions.ConfigurationError (huey 2 rejects a connection configured by both url and pool): a keep. Does not declare pytest; the runner is installed by environment_setup.",
+    "screened_date": "2026-09-28"
+  },
+  {
+    "name": "qual-id",
+    "url": "https://github.com/cl0wng1rl/qual-id",
+    "commit": "2988f24d6e370cb13da5c936fbb7ed3fba7a7471",
+    "commit_date": "2022-10-13",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: all 97 tests pass at baseline in under a second. A Flask 1.1 API that generates human-readable IDs from word lists; nothing leaves the process. 11 pins from 2020 on a 2022 commit. Upgrading everything at once also passes, so tie-expected against pip_upgrade. Does not declare pytest; the runner is installed by environment_setup.",
+    "screened_date": "2026-09-28"
+  },
+  {
+    "name": "wgadmin",
+    "url": "https://github.com/artizirk/wgadmin",
+    "commit": "abc2dd34661b60f455e2556c9617d5d9c6a20681",
+    "commit_date": "2020-01-08",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\"",
+      "{python} -m pip install \"flask-testing==0.8.1\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 3 tests (16 subtests) pass at baseline in under a second, against Flask's test client and an in-memory SQLite database. A small WireGuard admin panel on Flask 1.1, Flask-SQLAlchemy 2.4, Flask-WTF and SQLAlchemy 1.3: 10 pins from 2019. Upgrading everything at once also passes, so tie-expected against pip_upgrade. A thin oracle -- three tests -- which the paper should say. Does not declare pytest; the runner is installed by environment_setup. Its tests also import flask_testing, declared only in dev-requirements.txt; environment_setup installs flask-testing 0.8.1, which works with both Flask 1.1/Werkzeug 0.16 and Flask 3.1/Werkzeug 3.1 (checked), so the test tool does not pin the measured set. The pinned 0.7.1 imports werkzeug.cached_property, removed in Werkzeug 1.0, and would.",
+    "screened_date": "2026-09-28"
+  },
+  {
+    "name": "coursera-data-eng",
+    "url": "https://github.com/nogibjj/coursera-applied-data-eng-projects",
+    "commit": "469a0f1f323df087ef1dc9590bff063a2028441a",
+    "commit_date": "2023-04-09",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test_main.py"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest file, unmodified: 5 tests pass at baseline in about 3 seconds, a FastAPI app exercised through its test client plus keyword extraction with yake; no network or AWS call is made. 10 pins from 2022 on a 2023 commit. Upgrading everything at once also passes, so tie-expected against pip_upgrade. A thin oracle -- five tests -- which the paper should say.",
+    "screened_date": "2026-09-28"
+  },
+  {
+    "name": "rllib",
+    "url": "https://github.com/dayyass/rllib",
+    "commit": "141c3a5b6fab6cc3f8203c31151c46c00e5304bf",
+    "commit_date": "2022-08-16",
+    "domain": "library",
+    "is_ml_research": true,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own test file, unmodified: one test, which trains a tabular Q-learning agent on gym's Taxi-v3 at import time and asserts the mean reward of the last ten episodes is exactly 8.0. A thin and seed-sensitive oracle: a newer gym or numpy can change that number without breaking anything, so a failure has to be read before it is called a dependency break. 8 pins from 2022 (torch 1.12.1, numpy 1.21.6, gym 0.25.1 with the atari extra); gym 0.26 changed reset/step, and numpy 2 removed aliases old gym uses. Added on the authors' request without local screening -- torch is too heavy for the laptop -- so the baseline and pip_upgrade arms on the cluster are its screen.",
+    "screened_date": "2026-09-30",
+    "included": false,
+    "rejection_reason": "baseline_does_not_install",
+    "rejection_note": "Dropped by the authors on 2026-10-02: on the cluster neither the declared baseline nor its reconstruction produced a working environment, so no arm can start. Not screened locally (torch is too heavy for the laptop)."
+  },
+  {
+    "name": "slicelabeler",
+    "url": "https://github.com/gsnlyd/SliceLabeler",
+    "commit": "88566a9aca2f82ded0cc0dc34fb231a1e311da2f",
+    "commit_date": "2022-04-04",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.8",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests",
+      "timeout_s": 60
+    },
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: all 59 tests pass at baseline in about 15 seconds, against Flask's test client, SQLite and a fake filesystem (pyfakefs); no service is needed. A Flask app for labelling medical-image slices with a fully frozen 18-package set: Flask 1.1.2, Werkzeug 0.16.1, Jinja2 2.11.3, itsdangerous 1.1.0, Click 7.0, Flask-SQLAlchemy 2.4.1 and SQLAlchemy 1.3.19, with numpy, nibabel and Pillow. Upgrading everything naively fails at collection with sqlalchemy.orm.exc.MappedAnnotationError: SQLAlchemy 2 reads the models' annotations differently -- a runtime coupling no package metadata declares. A keep, chosen for the coupled-major-upgrade stratum by that structural criterion, not by any AURA result. Does not declare pytest; the runner is installed by environment_setup. On the cluster some upgraded combinations -- pyfakefs 5.10 with nibabel 4.0 was seen -- make the suite spin at full CPU instead of failing; every such probe held its slot for the default hour. The test timeout is therefore 60 s for this subject, four times the suite's normal 7-15 s, and applies to every arm alike: a combination that has not finished its tests in a minute is rejected as failing.",
+    "screened_date": "2026-09-30",
+    "included": false,
+    "rejection_reason": "baseline_fails_validation",
+    "rejection_note": "Dropped by the authors on 2026-10-01: the oracle is not deterministic under the harness. Of 79 test runs across its arms, about 70 finished in 0.25-21 s and 8 hung until the timeout, with none in between -- and the unmodified baseline pins passed in about 8 s in five arms but hung in greedy's, twice (once for the full hour). A hang is read as failing, so roughly one probe in ten was rejected regardless of the versions it tested. Neither the NFS checkout (since moved to local disk) nor the one-thread limits explain it; the cause, somewhere in its pyfakefs suite under the harness, was not diagnosed."
+  },
+  {
+    "name": "flask-basic-registration",
+    "url": "https://github.com/mjhea0/flask-basic-registration",
+    "commit": "e445899092103d8e9a2a5e03eb62a076bb56c4a6",
+    "commit_date": "2022-03-22",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "environment": {
+      "APP_SETTINGS": "project.config.DevelopmentConfig"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 14 tests pass and 2 fail at baseline in about 9 seconds, against Flask's test client and SQLite; the two failures are tolerated identically by every arm. APP_SETTINGS names a config class, the one the README says to export; it is a module path, not a secret. 15 declared requirements, 26 once the unpinned transitive set is reconstructed at the commit date -- above the 20 the authors aim for, admitted deliberately. A Flask 1.1 app with Flask-Login, Flask-Migrate 2.7, Flask-Script, Flask-SQLAlchemy 2.4, SQLAlchemy 1.3 and Flask-WTF 0.14 on WTForms 2.3. Upgrading everything naively fails at import with ImportError: cannot import name 'TextField' from 'wtforms' (removed in WTForms 3); Flask-Script and MigrateCommand break against Flask 2 and Flask-Migrate 3 in the same way. None of these is declared in package metadata. A keep, chosen for the coupled-major-upgrade stratum by that structural criterion, not by any AURA result. Does not declare pytest; the runner is installed by environment_setup.",
+    "screened_date": "2026-09-30"
+  },
+  {
+    "name": "bridge-in-tech-backend",
+    "url": "https://github.com/anitab-org/bridge-in-tech-backend",
+    "commit": "57d7cee75558573cd8e5685fbe383ec395467e92",
+    "commit_date": "2021-10-01",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 6 tests pass at baseline and 47 fail. The 47 need a PostgreSQL server -- the test config builds a type://user:password@host/name URL from DB_* variables and the models live in a Postgres schema, so SQLite cannot stand in -- and a subject needing a live service is not configured with one. They are tolerated identically by every arm, which leaves a thin 6-test oracle covering app construction and configuration. 18 declared requirements, 46 once the unpinned transitive set is reconstructed at the commit date: well above the 20 the authors aim for, admitted deliberately, with the risk that search arms approach the 6-hour budget. Upgrading everything naively fails at import with ImportError: cannot import name 'MigrateCommand' from 'flask_migrate' (removed in Flask-Migrate 3, an undeclared coupling to Flask-Script). A keep, chosen for the coupled-major-upgrade stratum by that structural criterion, not by any AURA result.",
+    "screened_date": "2026-09-30",
+    "included": false,
+    "rejection_reason": "too_large",
+    "rejection_note": "Dropped by the authors on 2026-10-02 before any arm ran: 46 packages once reconstructed, against the 25 the sample now allows, with a 6-test oracle (47 tests need a Postgres server)."
+  },
+  {
+    "name": "morph-ome",
+    "url": "https://github.com/oeg-upm/Morph-OME",
+    "commit": "89c8c90c150049d04e31a34020cb7e67bc3017f2",
+    "commit_date": "2023-02-14",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "environment": {
+      "SECRET_KEY": "placeholder-not-a-secret"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 5 tests pass and 1 fails at baseline in under a second, against Flask's test client and SQLite; the failure is tolerated identically by every arm. SECRET_KEY is Flask's session-signing key and takes any placeholder; the GitHub OAuth variables are read only by the login route, which the tests do not reach. A fully frozen 18-package set: Flask 1.1.0, Werkzeug 1.0.1, Jinja2 2.11.3, itsdangerous 1.1.0, Flask-Login 0.5, Flask-SQLAlchemy 2.5.1 and SQLAlchemy 1.4, with rdflib and requests. Upgrading everything naively fails 4 tests with RuntimeError: A 'SQLAlchemy' instance has already been registered on this Flask app -- Flask-SQLAlchemy 3 changed how the extension binds to an app, a coupling no package metadata declares. A keep, chosen for the coupled-major-upgrade stratum by that structural criterion, not by any AURA result. A thin oracle, which the paper should say.",
+    "screened_date": "2026-09-30"
+  },
+  {
+    "name": "flask-odoo",
+    "url": "https://github.com/teamgeek-io/flask-odoo",
+    "commit": "f4c8a1d9974a98b014c16ef50d1a4a7015eb5f89",
+    "commit_date": "2021-05-06",
+    "domain": "library",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: all 37 tests pass at baseline in about a tenth of a second, against mocked Odoo RPC calls; nothing leaves the process. A Flask extension with a fully frozen 7-package set: Flask 1.1.2, Werkzeug 1.0.1, Jinja2 2.11.2, itsdangerous 1.1.0, Click 7.1.2, MarkupSafe 1.1.1 and schematics. Upgrading everything naively fails at import with ImportError: cannot import name '_app_ctx_stack' from 'flask' (removed in Flask 2.3), a coupling no metadata declares. A keep, chosen for the frozen-Flask-1 stratum by that structural criterion, not by any AURA result. The runner and its mocker fixture come from dev-requirements.txt, not requirements.txt; environment_setup installs pytest 7.1.3 and pytest-mock 3.10.0, with which all 37 pass at baseline (checked).",
+    "screened_date": "2026-09-30",
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\"",
+      "{python} -m pip install \"pytest-mock==3.10.0\""
+    ]
+  },
+  {
+    "name": "sayhello",
+    "url": "https://github.com/greyli/sayhello",
+    "commit": "1736e477029c2ee1e46727ab7b10888f1a079a1a",
+    "commit_date": "2021-06-13",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test_sayhello.py"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own test file, unmodified: all 11 tests pass at baseline in under a second, against Flask's test client and SQLite. The example application from the Flask web development book by Flask's maintainer, with a fully frozen 19-package set: Flask 1.1.2, Werkzeug 1.0.1, Jinja2 2.11.1, itsdangerous 1.1.0, Click 7.1.1, Flask-SQLAlchemy 2.4.1, SQLAlchemy 1.3.15, Flask-WTF 0.14.3, WTForms 2.2.1, Bootstrap-Flask and Flask-Moment. Upgrading everything naively fails all 11 with RuntimeError: Working outside of application context -- Flask-SQLAlchemy 3 requires an app context the code never pushes, a coupling no metadata declares. A keep, chosen for the frozen-Flask-1 stratum by that structural criterion, not by any AURA result. Does not declare pytest; the runner is installed by environment_setup.",
+    "screened_date": "2026-09-30"
+  },
+  {
+    "name": "ports-adapters-sample",
+    "url": "https://github.com/LucasRGoes/ports-adapters-sample",
+    "commit": "7192ef724ceed9aa60c03ee3bda2a97a8b532298",
+    "commit_date": "2019-07-26",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.8",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 12 tests pass and 3 fail at baseline in about a second; the three try to reach an MQTT broker (ConnectionRefusedError) and are tolerated identically by every arm, so no service is configured. A hexagonal-architecture sample on Flask 1.1.1 and Flask-RESTful 0.3.7 with a fully frozen 21-package set: Werkzeug 0.15.5, Jinja2 2.10.1, itsdangerous 1.1.0, Click 7.0, gevent 1.4, paho-mqtt and requests. Upgrading everything at once also passes, so tie-expected against pip_upgrade -- weak, like wgadmin, where per-package tools are still held back by the frozen Flask stack. Chosen for the frozen-Flask-1 stratum by that structural criterion, not by any AURA result. Does not declare pytest; the runner is installed by environment_setup.",
+    "screened_date": "2026-09-30"
+  },
+  {
+    "name": "project1qa",
+    "url": "https://github.com/BMustafa97/Project1QA",
+    "commit": "f51fce8a4d6dc9094af763a469799a8037fa271a",
+    "commit_date": "2021-02-28",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own tests, unmodified: at baseline 3 passed in 0.23s. 10 pins with a fully frozen Flask-1 stack (Flask==1.1.1, Jinja2==2.10.3, Werkzeug==0.16.1). Upgrading everything naively fails (1 error in 0.33s): E   RuntimeError: Working outside of application context. -- a keep. Chosen for the frozen-Flask-1 stratum by that structural criterion, not by any AURA result.",
+    "screened_date": "2026-10-01"
+  },
+  {
+    "name": "simple-search-engine",
+    "url": "https://github.com/9ayhub/simple-search-engine",
+    "commit": "1ccf98fb9ea2f5ffe2b231c026551b5c95a3b40e",
+    "commit_date": "2019-05-23",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test_article.py"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own tests, unmodified: at baseline 504 passed, 2 skipped, 16 warnings in 1.72s. Of those, 7 are the project's own. The repository commits a whole Python venv (venv/Lib/site-packages, thousands of files); screening collected numpy's and Jinja2's own tests from it, so the target is the project's own test file only. 19 pins with a fully frozen Flask-1 stack (Click==7.0, Flask==1.0.3, itsdangerous==1.1.0, Jinja2==2.10.1, MarkupSafe==1.1.1, Werkzeug==0.15.4). Upgrading everything at once also passes (504 passed, 2 skipped, 16 warnings in 1.87s), so tie-expected against pip_upgrade -- weak, like wgadmin, where a per-package tool is still held back by the frozen Flask stack. Chosen for the frozen-Flask-1 stratum by that structural criterion, not by any AURA result. Does not declare pytest; the runner is installed by environment_setup.",
+    "screened_date": "2026-10-01",
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "included": false,
+    "rejection_reason": "weak_deprioritized",
+    "rejection_note": "Dropped by the authors on 2026-10-02 before any arm ran: screening found the naive upgrade already passes, and the compute budget went to subjects where it breaks."
+  },
+  {
+    "name": "pyconxriddle",
+    "url": "https://github.com/akiross/PyConXRiddle",
+    "commit": "5a12a549aeb32c53f63b1df9137686bb2e78970a",
+    "commit_date": "2019-05-05",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.7",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own tests, unmodified: at baseline 1 failed, 99 passed, 3 error in 0.40 seconds. 10 pins with a fully frozen Flask-1 stack (click==7.0, flask==1.0.2, itsdangerous==1.1.0, jinja2==2.10.1, markupsafe==1.1.1, werkzeug==0.15.2). Upgrading everything at once also passes (1 failed, 102 passed, 1 warning in 0.26s), so tie-expected against pip_upgrade -- weak, like wgadmin, where a per-package tool is still held back by the frozen Flask stack. Chosen for the frozen-Flask-1 stratum by that structural criterion, not by any AURA result. Run on Python 3.7, not the 3.8 screening used: it pins Pillow 6.0.0, which ships wheels only up to cp37, and every arm failed on the cluster at build_failure because the nodes lack the image headers to compile it. Every rung of the baseline ladder said 'nothing to reconstruct', since all ten packages are pinned exactly. On 3.7 every pin installs as written: 102 pass and 1 fails at baseline (checked). pytest is not in requirements.txt; environment_setup installs it.",
+    "screened_date": "2026-10-01",
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "nasa-api",
+    "url": "https://github.com/xor3r/nasa",
+    "commit": "e8bc9fe92e87c06ebaa180295552569c0e455c08",
+    "commit_date": "2020-02-01",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.8",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own tests, unmodified: at baseline 13 passed, 4 warnings in 0.37s. 15 pins with a fully frozen Flask-1 stack (Click==7.0, Flask==1.0.3, itsdangerous==1.1.0, Jinja2==2.10.1, MarkupSafe==1.1.1, Werkzeug==0.15.4). Upgrading everything at once also passes (13 passed in 0.49s), so tie-expected against pip_upgrade -- weak, like wgadmin, where a per-package tool is still held back by the frozen Flask stack. Chosen for the frozen-Flask-1 stratum by that structural criterion, not by any AURA result. Does not declare pytest; the runner is installed by environment_setup.",
+    "screened_date": "2026-10-01",
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "included": false,
+    "rejection_reason": "weak_deprioritized",
+    "rejection_note": "Dropped by the authors on 2026-10-02 before any arm ran: screening found the naive upgrade already passes, and the compute budget went to subjects where it breaks."
+  },
+  {
+    "name": "flask-inventory-app",
+    "url": "https://github.com/shraite7/flask-inventory-app",
+    "commit": "ee3cde709442f2fa2e86b25d882f85768c5f6048",
+    "commit_date": "2020-11-01",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test_app.py"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own tests, unmodified: at baseline 8 passed in 0.06s. Of those, 8 are the project's own. The repository commits a whole Python venv (venv/Lib/site-packages, thousands of files); screening collected numpy's and Jinja2's own tests from it, so the target is the project's own test file only. 11 pins with a fully frozen Flask-1 stack (click==7.1.2, Flask==1.1.2, itsdangerous==1.1.0, Jinja2==2.11.2, MarkupSafe==1.1.1, Werkzeug==1.0.1). Upgrading everything at once also passes (8 passed in 0.06s), so tie-expected against pip_upgrade -- weak, like wgadmin, where a per-package tool is still held back by the frozen Flask stack. Chosen for the frozen-Flask-1 stratum by that structural criterion, not by any AURA result. Does not declare pytest; the runner is installed by environment_setup.",
+    "screened_date": "2026-10-01",
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "included": false,
+    "rejection_reason": "weak_deprioritized",
+    "rejection_note": "Dropped by the authors on 2026-10-02 before any arm ran: screening found the naive upgrade already passes, and the compute budget went to subjects where it breaks."
+  },
+  {
+    "name": "pygundb",
+    "url": "https://github.com/xmonader/pygundb",
+    "commit": "fce95d405270d8aa95b8e47f5e12860bd769cb9a",
+    "commit_date": "2019-12-21",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.8",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own tests, unmodified: at baseline 6 passed in 0.04s. 13 pins with a fully frozen Flask-1 stack (Click==7.0, Flask==1.1.1, itsdangerous==1.1.0, Jinja2==2.10.1, MarkupSafe==1.1.1, Werkzeug==0.15.6). Upgrading everything at once also passes (6 passed in 0.02s), so tie-expected against pip_upgrade -- weak, like wgadmin, where a per-package tool is still held back by the frozen Flask stack. Chosen for the frozen-Flask-1 stratum by that structural criterion, not by any AURA result. Does not declare pytest; the runner is installed by environment_setup.",
+    "screened_date": "2026-10-01",
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "included": false,
+    "rejection_reason": "weak_deprioritized",
+    "rejection_note": "Dropped by the authors on 2026-10-02 before any arm ran: screening found the naive upgrade already passes, and the compute budget went to subjects where it breaks."
+  },
+  {
+    "name": "apprenticeship-app",
+    "url": "https://github.com/RecycledMedia/apprenticeship-app",
+    "commit": "67eb18300163dedcc4f473883f20d992644af7b2",
+    "commit_date": "2020-11-13",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own tests, unmodified: at baseline 4 passed in 0.06s. 7 pins with a fully frozen Flask-1 stack (click==7.1.2, Flask==1.1.2, itsdangerous==1.1.0, Jinja2==2.11.2, MarkupSafe==1.1.1, Werkzeug==1.0.1). Upgrading everything at once also passes (4 passed in 0.05s), so tie-expected against pip_upgrade -- weak, like wgadmin, where a per-package tool is still held back by the frozen Flask stack. Chosen for the frozen-Flask-1 stratum by that structural criterion, not by any AURA result. Does not declare pytest; the runner is installed by environment_setup.",
+    "screened_date": "2026-10-01",
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "hk-flask-restful",
+    "url": "https://github.com/hellokissy/flask-restful-example",
+    "commit": "2c7145df0f9feea1ba00e104c859bb61ec0c1e7b",
+    "commit_date": "2019-06-13",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.8",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/testapp.py tests/testcommon.py"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own test files, unmodified: 5 pass and 1 fails at baseline in under a second; the failure is tolerated identically by every arm. A Flask-RESTful sample (hellokissy's, not erdem's flask-restful-example already in the sample) with a fully frozen 24-package set: Click==7.0, Flask==1.0.2, Flask-Migrate==2.4.0, Flask-RESTful==0.3.7, Flask-Script==2.0.6, Flask-SQLAlchemy==2.3.2, itsdangerous==1.1.0, Jinja2==2.10.1, MarkupSafe==1.1.1, Werkzeug==0.14.1. Upgrading everything naively fails at import with ModuleNotFoundError: No module named 'flask._compat' -- removed in Flask 2 and still imported by an old extension, a coupling no metadata declares. A keep, chosen for the frozen-Flask-1 stratum by that structural criterion, not by any AURA result. A thin oracle, which the paper should say. Does not declare pytest; the runner is installed by environment_setup.",
+    "screened_date": "2026-10-01"
+  },
+  {
+    "name": "cmpe131",
+    "url": "https://github.com/cindyxue/CMPE131_2019Fall_Team1",
+    "commit": "7076f1dd4ea5cd66c89ad2905908eccc0ff96cfb",
+    "commit_date": "2019-12-18",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: all 10 tests pass at baseline in under a second, against Flask's test client and SQLite. A Flask course project with a fully frozen 14-package set: Flask 1.1.1, Werkzeug 0.16.0, Jinja2 2.10.3, itsdangerous 1.1.0, Click 7.0, MarkupSafe 1.1.1, Flask-Login 0.4.1, Flask-SQLAlchemy 2.4.1, SQLAlchemy 1.3.11, Flask-WTF 0.14.2, WTForms 2.2.1 and Flask-Mail. Upgrading everything naively fails all 10 at import with ImportError: cannot import name 'url_parse' from 'werkzeug.urls' -- Flask-Login 0.4 imports a Werkzeug internal removed in 2.3, a dependency-to-dependency coupling no metadata declares. A keep, chosen for the frozen-Flask-1 stratum by that structural criterion, not by any AURA result. Does not declare pytest; the runner is installed by environment_setup.",
+    "screened_date": "2026-10-02"
+  },
+  {
+    "name": "graphene-mongodb",
+    "url": "https://github.com/joaovitorsilvestre/graphene-mongodb",
+    "commit": "4db3b08480282419b2eec8b012c1e8657a216b11",
+    "commit_date": "2019-10-29",
+    "domain": "library",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 54 pass and 3 fail at baseline in under a second; the 54 build GraphQL schemas from mongoengine documents without touching a MongoDB server (only the examples connect), and the 3 failures are tolerated identically by every arm. A fully frozen 13-package set: graphene 2.1, graphql-core 2.0, graphql-relay 0.4.5, promise, rx, aniso8601, mongoengine 0.15 and pymongo 3.6. Upgrading everything naively fails at import with ModuleNotFoundError: No module named 'graphql.utils' (graphql-core 3); the suite's own conftest also connects with host='mongomock://', which mongoengine 0.27 removed. A keep, chosen by its structure, not by any AURA result; its breaks are in the project's code against single packages, so a tie with greedy is expected. The tests need mongomock, pytz, mock and sentinels from requirements-dev.txt, not requirements.txt; environment_setup installs them, with mongomock 4.1.2 checked to work against both pymongo 3.6 (54 pass, 3 fail, as at screening) and pymongo 4.",
+    "screened_date": "2026-10-01",
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\" \"pytz\" \"mongomock==4.1.2\" \"mock\" \"sentinels\""
+    ]
+  },
+  {
+    "name": "authors-of-leisure",
+    "url": "https://github.com/DeVarlamov/authors-of-leisure",
+    "commit": "377bf11b3c88417855a85bfe63f4e9cf61b2f17e",
+    "commit_date": "2023-10-07",
+    "domain": "web-app",
+    "is_ml_research": false,
+    "python_version": "3.8",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: all 31 tests pass at baseline in about 3 seconds, against Django's test client and SQLite. One of thirteen near-identical student repositories built from one course template (Yandex Practicum's yatube); only this one is in the sample, so the template is counted once. A Django 2.2 stack with django-debug-toolbar, sorl-thumbnail, mixer and Faker, tested through pytest 5.3, pytest-django 3.8 and the abandoned pytest-pythonpath; 11 declared packages, 24 once rebuilt at the commit date, and that rebuilt set is frozen in baselines/ so the arms and Dependabot start from it. Upgrading everything naively fails before any test runs: ValueError: unknown configuration type: pathlist -- pytest 7 removed what pytest-pythonpath's python_paths option needs, a plugin-to-runner coupling no metadata declares. A keep, chosen by that structural criterion, not by any AURA result.",
+    "screened_date": "2026-10-01"
+  },
+  {
+    "name": "deep-table",
+    "url": "https://github.com/pfnet-research/deep-table",
+    "commit": "a19c0c3048484017d5f24806604c3b3470bcf550",
+    "commit_date": "2021-11-08",
+    "domain": "ml-research",
+    "is_ml_research": true,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"pytest-mock==3.10.0\" \"setuptools<70\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 28 pass and 30 are skipped (they need --runslow) at baseline in about a second, on CPU. A torch 1.9.0 + torchvision 0.10.0 stack (each torchvision release pins one torch) with pytorch-lightning 1.3.6, scikit-learn 0.24, pandas 1.1, optuna, xgboost and numpy 1.21; 11 declared pins. Its tests use pytest-mock's mocker fixture, which the project does not declare, and pytorch-lightning 1.3.6 imports pkg_resources, which setuptools 82 no longer ships; environment_setup installs pytest-mock and holds setuptools below 70. The declared set resolves to 67 packages, and a fresh install takes today's torchmetrics, which pytorch-lightning 1.3.6 cannot import (get_num_classes); the frozen baseline in baselines/ is the 11 declared pins plus torchmetrics==0.6.0, the version of the commit date, and the rest resolve freely. Upgrading everything naively fails at import in the project's own code: deep_table/estimators/base.py imports pytorch_lightning.utilities.seed.seed_everything, which only Lightning 1.x has. A keep, chosen by its structure -- a declared lockstep pair (torch/torchvision) plus a project-side cap on a third package whose newest 1.x needs a newer torch -- not by any AURA result.",
+    "screened_date": "2026-10-04"
+  },
+  {
+    "name": "koandeaire-backend",
+    "url": "https://github.com/koandeaire/backend",
+    "commit": "c852169ce213152f430e6444515058d2d85f1c6e",
+    "commit_date": "2020-12-03",
+    "domain": "web-api",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/service.py"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: all 10 tests pass at baseline in under a second, through FastAPI's TestClient against SQLite. A FastAPI 0.60 service on databases 0.3.2 and SQLAlchemy 1.3.20 with alembic, 14 declared pins that install as written. Newer databases releases each pin one SQLAlchemy minor (0.5-0.8 need 1.4, 0.9 needs 2.0), and databases 0.3/0.4 break on SQLAlchemy 1.4 at import (RowProxy) with no declared bound; checked in Docker: SQLAlchemy 1.4 alone gives 10 errors, SQLAlchemy 2 alone and the newest databases fail, and databases 0.6.2 with SQLAlchemy 1.4.41 together pass all 10. Upgrading everything naively fails at import: the newest Starlette TestClient needs httpx, which the project does not declare. A keep, chosen by that structure -- a declared lockstep pair with an undeclared runtime break -- not by any AURA result.",
+    "screened_date": "2026-10-05"
+  },
+  {
+    "name": "django-chit-chat",
+    "url": "https://github.com/ckc-org/django-chit-chat",
+    "commit": "e850a991641e22d2319718e6b37b9122dbe02a93",
+    "commit_date": "2022-10-14",
+    "domain": "library",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: all 16 tests pass at baseline in about 3 seconds, including Channels websocket tests, against SQLite. A Django 3.2 chat app on Channels 3.0.3 and Django REST framework 3.13, tested through pytest 6.2 with pytest-django, pytest-asyncio and the abandoned pytest-pythonpath (which holds pytest below 7); 11 declared pins that install as written and resolve to about 62 packages (Channels brings daphne/Twisted, twine a keyring tree). Checked in Docker: Django 4.2 alone fails at collection; the newest Channels alone (it declares Django >= 4.2) fails because the old DRF breaks; the newest DRF alone (also pulling Django 4.2) leaves 9 failing because the old Channels breaks; Django 4.2 with Channels 4.3 and DRF 3.16 together pass all 16. A three-way lock whose Channels-DRF leg no metadata declares. A keep, chosen by that structure, not by any AURA result.",
+    "screened_date": "2026-10-05"
+  },
+  {
+    "name": "tensor-fm",
+    "url": "https://github.com/gmodena/tensor-fm",
+    "commit": "5532347d4cd9850fedb543ead6d94c90958ac9f3",
+    "commit_date": "2022-01-05",
+    "domain": "ml-research",
+    "is_ml_research": true,
+    "python_version": "3.8",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 19 pass and 2 are skipped at baseline (screened on the cluster). A TensorFlow factorization-machine library pinning tensorflow 2.5.2 with tensorflow-estimator 2.5.0 and scikit-learn 0.24.2, 4 declared pins. Each TensorFlow release requires one tensorflow-estimator minor: the resolver refuses TensorFlow 2.13 alone and estimator 2.13 alone (checked in Docker; TensorFlow itself cannot run under emulation there). Upgrading everything naively leaves 2 failing (Keras 3 arrives with the newest TensorFlow). A declared lockstep pair with a cap from the newest major, as in deep-table; chosen by that structure, not by any AURA result. Does not declare pytest; the runner is installed by environment_setup.",
+    "screened_date": "2026-10-06"
+  },
+  {
+    "name": "nbdt",
+    "url": "https://github.com/alvinwan/neural-backed-decision-trees",
+    "commit": "a7a2ee6f735bbc1b3d8c7c4f9ecdd02c6a75fc1e",
+    "commit_date": "2021-06-02",
+    "domain": "ml-research",
+    "is_ml_research": true,
+    "python_version": "3.8",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 11 tests pass at baseline on the cluster (synthetic tensors, locally built ResNet18, no downloads). Pins torch 1.6.0 with torchvision 0.7.0 (exactly coupled) and opencv-python 4.4; the rest are unpinned. Flagged by the walk check as a joint-move candidate, but the joint target (torch 2.4.1 + torchvision 0.19.1) is the newest installable pair, which greedy reaches by following the resolver; tie expected. Run to settle it empirically. Chosen by structure, not by any AURA result.",
+    "screened_date": "2026-10-07"
+  },
+  {
+    "name": "fghisi-tourism",
+    "url": "https://github.com/fghisi/tourism",
+    "commit": "3d5e1e67597cafa692e0b4caaa6a14d9c8e6324b",
+    "commit_date": "2020-07-23",
+    "domain": "web-api",
+    "is_ml_research": false,
+    "python_version": "3.8",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test/service/authentication.py"
+    },
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 4 tests pass at baseline. A FastAPI 0.60 service pinning Starlette 0.13.4 and pydantic 1.6 (FastAPI pins a narrow Starlette range), SQLAlchemy 1.3, alembic, PyJWT 1.7; 8 pins. PyJWT 2 breaks the project's jwt.decode call (a single hold). Flagged by the walk check with joint target FastAPI 0.124 + Starlette 0.44 + pydantic 2.10, likely the newest installable set that greedy reaches itself; tie expected. Run to settle it empirically. Chosen by structure, not by any AURA result.",
+    "screened_date": "2026-10-07"
+  },
+  {
+    "domain": "ml-research",
+    "is_ml_research": true,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "screened_date": "2026-10-07",
+    "name": "picasso-training",
+    "url": "https://github.com/Steffen-Wolf/picasso_training",
+    "commit": "53d3dcf488cc63c91cbefa35a1f4a691ae3e2a90",
+    "commit_date": "2021-10-28",
+    "is_installable": false,
+    "validation_notes": "The project's own pytest suite, unmodified: 5 pass and 11 fail at baseline (the failures are tolerated identically by every arm). torch 1.8.1 + torchvision 0.9.1 exactly coupled, with pytorch-lightning and hydra; the declared file's 20 lines are frozen in baselines/ at their commit-date versions (deeper transitive packages resolve freely). Walk check (cluster): the one-at-a-time walk stays at torch 1.8.1 / torchvision 0.9.1, greedy's newest pair (torch 2.8 / torchvision 0.23) fails the tests, and a joint move to torch 2.0.1 / torchvision 0.15.2 passes. Chosen by that structure, not by any AURA result. pytorch-lightning 1.4 imports pkg_resources, which setuptools 82 no longer ships; environment_setup holds setuptools below 70.",
+    "environment_setup": [
+      "{python} -m pip install \"setuptools<70\""
+    ]
+  },
+  {
+    "domain": "ml-research",
+    "is_ml_research": true,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "screened_date": "2026-10-07",
+    "name": "concept-transformer",
+    "url": "https://github.com/IBM/concept_transformer",
+    "commit": "84c9c30108a6249e017d580c4120ea54af0064f7",
+    "commit_date": "2023-04-12",
+    "is_installable": false,
+    "environment_setup": [
+      "{python} -m pip install \"pytest==7.1.3\""
+    ],
+    "validation_notes": "The project's own pytest suite, unmodified: 3 pass and 1 fails at baseline. torch 1.10 + torchvision 0.11.1 exactly coupled, with pytorch-lightning 1.4.8, torchmetrics, timm and lightning-bolts; 13 declared pins frozen in baselines/ at their commit-date versions. Walk check (cluster): the walk stays at torch 1.10 / torchvision 0.11.1 (Lightning held at 1.5.10), greedy's newest set fails, and torch 1.13.1 + torchvision 0.14.1 together pass -- the deep-table shape. A small suite. Chosen by structure, not by any AURA result. Does not declare pytest; installed by environment_setup."
+  },
+  {
+    "domain": "library",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests"
+    },
+    "validation_provenance": "repo_tests",
+    "screened_date": "2026-10-07",
+    "name": "aidbox-py",
+    "url": "https://github.com/beda-software/aidbox-py",
+    "commit": "4201379405c3a75826954ad7d5945ae61bb1a85f",
+    "commit_date": "2021-11-16",
+    "is_installable": true,
+    "validation_notes": "The project's own pytest suite, unmodified: 34 pass at baseline; 62 fail because they need a live Aidbox server and are tolerated identically by every arm. 6 declared pins: fhirpy 1.3, pytest 5.3.1, pytest-asyncio 0.10, pytest-cov 2.8.1, unittest2, yapf. Walk check (cluster): pytest and its plugins cannot move one at a time (each pytest-asyncio release declares a pytest range; old pytest-asyncio breaks on new pytest), greedy's newest set fails, and pytest 7.4.4 + pytest-asyncio 0.21.2 together pass. A plugin-runner coupling. Chosen by structure, not by any AURA result."
+  },
+  {
+    "name": "wenet",
+    "url": "https://github.com/youngsuen19860205/wenet",
+    "commit": "89a4a5dbb96c99aa8714ad80d01b04612dfa2b26",
+    "commit_date": "2024-01-09",
+    "domain": "ml-research",
+    "is_ml_research": true,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test/test_file_utils.py test/wenet/dataset/test_processor.py test/wenet/text/test_bpe_tokenizer.py test/wenet/text/test_char_tokenizer.py test/wenet/text/test_paraformer_tokenizer.py test/wenet/text/test_parallel.py test/wenet/text/test_whisper_tokenizer.py test/wenet/transformer/test_grad_ckpt.py test/wenet/utils/test_init_model.py test/wenet/utils/test_init_tokenizer.py test/wenet/whisper/test_whisper.py"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"setuptools<70\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 31 pass and 14 fail at baseline on the cluster (the failures are tolerated identically by every arm). A speech-recognition toolkit pinning torch 1.13.0 with torchaudio 0.13.0 (each torchaudio release pins one torch exactly) and using torchaudio.backend.sox_io_backend, removed in torchaudio 2; the declared file's 22 lines are frozen in baselines/ at their commit-date versions. Walk check (cluster): the walk stays at torch 1.13.0 / torchaudio 0.13.0, greedy's newest set fails, and the joint patch torch 1.13.1 + torchaudio 0.13.1 passes. A small (patch-level) gain by construction. Chosen by structure, not by any AURA result. The test target lists the 11 offline test files the walk check validated; test/wenet/text/test_hugging_face_tokenizer.py is left out because it cannot be collected in this environment. numpy is frozen at 1.26.3 (its commit-date version): torch 1.13 is built against numpy 1 and fails to load numpy 2.",
+    "screened_date": "2026-10-07"
+  },
+  {
+    "name": "tensorgrad",
+    "url": "https://github.com/neuraloperator/tensorgrad",
+    "commit": "1434d1ae2cf4a2ae639b1de8a1090132f2d101f5",
+    "commit_date": "2026-07-13",
+    "domain": "ml-research",
+    "is_ml_research": true,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "neuralop/layers/tests/test_attention_layer.py neuralop/layers/tests/test_finite_difference_conv.py neuralop/layers/tests/test_fno_block.py neuralop/layers/tests/test_grid_embeddings.py neuralop/layers/tests/test_legacy_spectral_convolution.py neuralop/layers/tests/test_local_no_block.py neuralop/layers/tests/test_neighbor_search.py neuralop/layers/tests/test_padding.py neuralop/layers/tests/test_resample.py neuralop/layers/tests/test_segment_csr.py neuralop/layers/tests/test_spectral_convolution.py neuralop/layers/tests/test_spherical_convolution.py neuralop/losses/tests/test_losses.py",
+      "test_dir": "neuraloperator"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"setuptools<70\"",
+      "{python} -m pip install -e ./tensorly -e ./neuraloperator"
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 199 pass and 4 fail at baseline in the walk check. Coupled: torch, torchaudio, torchvision, matplotlib, scipy. Walk check (LOCKED): one-at-a-time walk stalls at {\"torch\": \"2.4.0\", \"torchaudio\": \"2.11.0\", \"torchvision\": \"0.19.0\", \"matplotlib\": \"3.10.9\", \"scipy\": \"1.15.3\", \"pytest\": \"9.1.1\"}; a joint move to {\"torch\": \"2.12.1\", \"torchaudio\": \"2.11.0\", \"torchvision\": \"0.27.1\", \"matplotlib\": \"3.10.9\", \"scipy\": \"1.15.3\", \"pytest\": \"9.1.1\"} passes while greedy's newest set fails. Test files ['neuraloperator/neuralop/data/transforms/tests/test_unit_gaussian_normalizer.py'] are left out: they cannot be collected. Frozen baseline in baselines/: the declared lines at their commit-date versions. Chosen by structure, not by any AURA result. The requirements file installs two vendored folders of the repo (-e ./tensorly, -e ./neuraloperator); they are the project's own code, so they are not in the frozen set AURA upgrades and are installed by environment_setup (inside the project, with their own dependencies, e.g. tensorly-torch, which the tests import but requirements.txt does not list). Tests run from neuraloperator/ (validation.test_dir): from the repo root, `import tensorly` resolves to the vendored outer folder and fails.",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "whoopbot",
+    "url": "https://github.com/ashwineaso/whoopbot",
+    "commit": "179f8311c81a213f7f5a7980a9de625f3547758d",
+    "commit_date": "2022-04-03",
+    "domain": "web-api",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "whoopbot/tests/actions/test_add.py whoopbot/tests/actions/test_delete.py whoopbot/tests/actions/test_list.py whoopbot/tests/actions/test_lock.py whoopbot/tests/actions/test_release.py"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"setuptools<70\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 16 pass and 0 fail at baseline in the walk check. Coupled: databases, sqlalchemy, fastapi, aiohttp, pytest. Walk check (LOCKED): one-at-a-time walk stalls at {\"databases\": \"0.6.2\", \"sqlalchemy\": \"1.4.34\", \"fastapi\": \"0.128.8\", \"aiohttp\": \"3.13.5\", \"pytest\": \"8.4.2\"}; a joint move to {\"databases\": \"0.8.0\", \"sqlalchemy\": \"1.4.54\", \"fastapi\": \"0.128.8\", \"aiohttp\": \"3.13.5\", \"pytest\": \"8.4.2\"} passes while greedy's newest set fails. Frozen baseline in baselines/: the declared lines at their commit-date versions. Chosen by structure, not by any AURA result.",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "imagemodel",
+    "url": "https://github.com/tinklerk/imagemodel",
+    "commit": "360c672117b5ccb1bfb3d6771b0720fa1a1f513c",
+    "commit_date": "2021-06-02",
+    "domain": "ml-research",
+    "is_ml_research": true,
+    "python_version": "3.8",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "imagemodel/classification/models/tf_keras/applications_load_weight_test.py imagemodel/classification/models/tf_keras/applications_test.py imagemodel/classification/models/tf_keras/imagenet_utils_test.py tests/test_common/test_losses/test_losses_bg_weighted_bce.py tests/test_common/test_losses/test_losses_bg_weighted_cce.py tests/test_common/test_losses/test_losses_weighted_cce.py tests/test_common/test_metrics/test_categorical_accuracy.py tests/test_common/test_metrics/test_categorical_cross_entropy.py tests/test_common/test_metrics/test_cosine_similarity.py tests/test_common/test_utils/test_tf_images.py tests/test_reference_tracking/test_layers/test_extract_patch_layer.py tests/test_reference_tracking/test_layers/test_extract_patch_layer3.py"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"setuptools<70\" \"pytest==7.1.3\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 133 pass and 8 fail at baseline in the walk check. Coupled: tensorflow, keras. Walk check (inconclusive (stalled on a lockstep pair)): one-at-a-time walk stalls at {\"tensorflow\": \"2.4.4\", \"keras\": \"2.4.3\"}; no joint move was found within the check's pair budget, which tries at most two packages at a time. Starts from the declared requirements; AURA rebuilds the baseline if they no longer install. Chosen by structure, not by any AURA result.",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "rhizonet",
+    "url": "https://github.com/lbl-camera/rhizonet",
+    "commit": "41e1b31d3812357f749028292e92fbd2de06a7a8",
+    "commit_date": "2025-10-30",
+    "domain": "ml-research",
+    "is_ml_research": true,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_metrics.py tests/test_postprocessing.py tests/test_predict.py tests/test_prepare_patches.py tests/test_train.py tests/test_unet2d.py tests/test_utils.py"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"setuptools<70\" \"pytest==7.1.3\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 24 pass and 5 fail at baseline in the walk check. Coupled: torch, pytorch-lightning, torchaudio, torchtext, torchvision. Walk check (inconclusive (stalled on a lockstep pair)): one-at-a-time walk stalls at {\"torch\": \"2.4.1\", \"pytorch-lightning\": \"2.2.5\", \"torchaudio\": \"2.4.1\", \"torchtext\": \"0.18.0\", \"torchvision\": \"0.19.1\", \"scikit-learn\": \"1.6.1\"}; no joint move was found within the check's pair budget, which tries at most two packages at a time. Starts from the declared requirements; AURA rebuilds the baseline if they no longer install. Chosen by structure, not by any AURA result.",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "g-fscil",
+    "url": "https://github.com/NiHaoWoJiaoYYC/G-FSCIL",
+    "commit": "d90a343c96a75509350f4cf6f8983844bbaf8087",
+    "commit_date": "2026-08-07",
+    "domain": "ml-research",
+    "is_ml_research": true,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_config.py tests/test_data_pipeline.py"
+    },
+    "environment_setup": [
+      "{python} -m pip install \"setuptools<70\" \"pytest==7.1.3\""
+    ],
+    "validation_provenance": "repo_tests",
+    "validation_notes": "The project's own pytest suite, unmodified: 7 pass and 7 fail at baseline in the walk check (a small oracle). Coupled: torch, transformers, torchvision, pytorch-lightning, tokenizers, timm. Walk check (LOCKED): the walk stalls at torch 2.7.1 / torchvision 0.22.1; greedy's newest pair (torch 2.14) fails the tests and torch 2.12.1 + torchvision 0.27.1 together pass. Frozen baseline in baselines/ from the check's own probe. Chosen by structure, not by any AURA result.",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "fichub-fichub-cli",
+    "url": "https://github.com/FicHub/fichub-cli",
+    "commit": "c323aefee3936f57ec21037565c70a6fa7797a39",
+    "commit_date": "2024-07-17",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_cli.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [1, 3]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "prem-kumar-dev-sihmain2025",
+    "url": "https://github.com/Prem-Kumar-Dev/SIHMain2025",
+    "commit": "23da4dbfbc13ae7d82f7bc3cd28a4ff5d5deeb86",
+    "commit_date": "2025-09-19",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_api.py tests/test_api_lateness.py tests/test_conflict_groups.py tests/test_disruptions.py tests/test_due_time.py tests/test_dwell.py tests/test_greedy.py tests/test_kpis_audit.py tests/test_kpis_lateness.py tests/test_kpis_tolerance.py tests/test_lateness_csv_endpoint.py tests/test_milp.py tests/test_milp_blocks.py tests/test_milp_hetero.py tests/test_milp_multisec.py tests/test_persistence_api.py tests/test_platform_capacity.py tests/test_predict_endpoint.py tests/test_predict_model_selector.py tests/test_resolve_endpoint.py tests/test_route_conflicts.py tests/test_whatif.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [36, 0]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "ydfriedman-kenyaemr-iit",
+    "url": "https://github.com/ydfriedman/KenyaEMR_IIT",
+    "commit": "e20be486b945dd4af09c8e34eeb69622e89d0583",
+    "commit_date": "2026-01-14",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_demfeatures.py tests/test_getdata.py tests/test_cleandata.py tests/test_createtarget.py tests/test_visitfeatures.py tests/test_targetfeatures.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [36, 3]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "ngduyd-iots-backend",
+    "url": "https://github.com/ngduyd/iots-backend",
+    "commit": "b0ed920d926e8f78ce3b1f27c3aa8aa3b96b79be",
+    "commit_date": "2026-04-04",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/api/test_branches.py tests/api/test_cameras.py tests/api/test_sensors.py tests/integration/test_alerts.py tests/integration/test_auth.py tests/integration/test_connection.py tests/integration/test_database.py tests/integration/test_groups_branches.py tests/integration/test_jobs_models.py tests/integration/test_minimal.py tests/integration/test_sensors_cameras.py tests/integration/test_users.py tests/unit/test_alert_logic.py tests/unit/test_alerts_service.py tests/unit/test_branches_service.py tests/unit/test_cameras_service.py tests/unit/test_groups_service.py tests/unit/test_job_logic.py tests/unit/test_jobs_service.py tests/unit/test_schemas.py tests/unit/test_schemas_refined.py tests/unit/test_security.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [18, 0]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "210533141zby-new-velo",
+    "url": "https://github.com/210533141zby/new_velo",
+    "commit": "dc7200dc30f6a7429b0eacf69644ca75e19ad020",
+    "commit_date": "2026-04-28",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "backend/tests/test_completion_policy.py backend/tests/test_hybrid_retrieval.py backend/tests/test_rag_pipeline_execution.py backend/tests/test_rag_pipeline_routing.py backend/tests/test_unified_evidence_scorer.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [48, 2]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "yaminbinyoosuf-indias-logistics-intellig",
+    "url": "https://github.com/yaminbinyoosuf/Indias-Logistics-Intelligence-API",
+    "commit": "25a1f0ab2e76025ee69ce21819325c9d034020ac",
+    "commit_date": "2026-04-08",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_api.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [9, 0]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "adityabalaji97-cricket-data-thing",
+    "url": "https://github.com/adityabalaji97/cricket-data-thing",
+    "commit": "2e8f4492e4d7b8677966bd6f3ebf3d9c08f0292f",
+    "commit_date": "2026-10-06",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "comprehensive_test.py fixed_test.py test_batch_processor.py test_batting_true_percentiles.py test_context_model.py test_database.py test_database_direct.py test_delhi_fix.py test_different_matches.py test_elo_normalization.py test_enhanced_loadMatches.py test_enhanced_matching.py test_fixed_par_scores.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [17, 5434]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "weltlink-django-quickbooks",
+    "url": "https://github.com/weltlink/django-quickbooks",
+    "commit": "526c4f038e4d84d484c154855816d5931662abb3",
+    "commit_date": "2020-04-17",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.8",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/object_tests/test_address.py tests/object_tests/test_customer.py tests/object_tests/test_invoice.py tests/service_tests/test_customer.py tests/service_tests/test_invoice.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [16, 4]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "aditya-k63-linkhub",
+    "url": "https://github.com/Aditya-k63/LinkHub",
+    "commit": "95171db561862cb87dec4d4dfc268b0e37a316a3",
+    "commit_date": "2026-07-21",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_api.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [2, 5]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "rebornagency-noianalyzer",
+    "url": "https://github.com/Rebornagency/noianalyzer",
+    "commit": "9fd64de59c916bd848a6ca7f9e5fd75c626d2bbd",
+    "commit_date": "2025-09-28",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "comprehensive_fix_test.py comprehensive_test.py cross_browser_test.py final_credit_ui_test.py final_test.py integration_test.py perfect_approach_comprehensive_test.py perfect_approach_test.py simple_excel_test.py simple_extraction_test.py test_admin_endpoints.py test_all_file_types.py test_assistant_basic.py test_assistant_deployment.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [38, 4]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "milsey52-squatter",
+    "url": "https://github.com/milsey52/Squatter",
+    "commit": "3d41d774957879a00c3f62530d54421784739367",
+    "commit_date": "2026-06-13",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_ai_stock_sale.py tests/test_ai_thinking.py tests/test_autopilot_guards.py tests/test_decision_stock_sale.py tests/test_drought.py tests/test_ledger.py tests/test_turn_manager.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [100, 0]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "serejaris-telegram-bot-mvp",
+    "url": "https://github.com/serejaris/telegram-bot-mvp",
+    "commit": "3b1d098ee6d29397dc093dc4b4322af48bf281ee",
+    "commit_date": "2026-10-01",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_message_links_and_forward.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [5, 0]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "hypersb-quantcli",
+    "url": "https://github.com/Hypersb/QUANTCLI",
+    "commit": "f2c85e5270e20bb0aea0e80b96eca9a1fb39aa12",
+    "commit_date": "2026-03-19",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test_installation.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [4, 0]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "aio-libs-aiohttp-jinja2",
+    "url": "https://github.com/aio-libs/aiohttp-jinja2",
+    "commit": "e45cd674006cb621f0e6352ae8acfb7b184b5c59",
+    "commit_date": "2026-10-01",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_context_processors.py tests/test_jinja_filters.py tests/test_jinja_globals.py tests/test_simple_renderer.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [30, 0]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "sswozon3-technicalassesment",
+    "url": "https://github.com/SSWOZon3/TechnicalAssesment",
+    "commit": "26aa38dd416b96a9dbd4fd2065d73d0fe2cbdc27",
+    "commit_date": "2025-10-09",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/integration/test_cache_integration.py tests/integration/test_controller.py tests/unit/test_cache_service.py tests/unit/test_get_hn_pages_use_case.py tests/unit/test_scraper.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [22, 0]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "aio-libs-aiohttp-debugtoolbar",
+    "url": "https://github.com/aio-libs/aiohttp-debugtoolbar",
+    "commit": "f1ab053f5799ebd752cef7ee91c152a8f466d7c2",
+    "commit_date": "2026-02-01",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/pep492/test_await.py tests/test_debug.py tests/test_exception_views.py tests/test_imports.py tests/test_middleware.py tests/test_panel.py tests/test_panels_versions.py tests/test_server_push.py tests/test_utils.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [33, 0]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "raunakkohli-mnk-game",
+    "url": "https://github.com/raunakkohli/mnk-game",
+    "commit": "858e5275855c187980bdbf328fa0d411b6a2647c",
+    "commit_date": "2021-11-06",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/helpers/tictactoe_helper_test.py tests/svc/tictactoe_svc_test.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [24, 0]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "nirmitjobanputra-data-insights-dashboard",
+    "url": "https://github.com/nirmitjobanputra/Data-Insights-Dashboard-For-Public-Health-Report",
+    "commit": "4a55fc2d50d206d61bc0d984bcb6a78236fb02ef",
+    "commit_date": "2025-12-17",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_data_loader.py tests/test_database.py tests/test_models.py tests/test_repositories.py tests/test_schema.py tests/test_services.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [57, 0]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "john-hawkins-textplainer",
+    "url": "https://github.com/john-hawkins/textplainer",
+    "commit": "89ab0ac21e4db0fd53184fb431dc730b7940de62",
+    "commit_date": "2021-04-14",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.7",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_functions.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [11, 0]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "spireblight-spireblight",
+    "url": "https://github.com/Spireblight/Spireblight",
+    "commit": "a7a9b8ad4cf58c6f00b640f5ab88e299a9c5ae43",
+    "commit_date": "2026-10-07",
+    "domain": "control-noncoupled",
+    "is_ml_research": false,
+    "python_version": "3.11",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test/test_commands.py test/test_config.py test/test_events.py test/test_gamedata.py test/test_nameinternal.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Non-coupled control: no package's newest compatible release requires another pinned package to move (PyPI metadata only; chosen before any AURA run). Baseline passed in the walk check (passed/failed [100, 0]).",
+    "screened_date": "2026-10-08"
+  },
+  {
+    "name": "alercebroker-cats-service",
+    "url": "https://github.com/alercebroker/cats_service",
+    "commit": "c486c0f6e68040a4c03fbcd62dfbc8a914d06cc4",
+    "commit_date": "2023-02-15",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_controller.py tests/test_service.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (pydantic family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [20, 0]); a newer passing joint set exists ({'click': '8.5.0', 'fastapi': '0.142.4', 'jinja2': '3.1.6', 'markupsafe': '3.0.4', 'scipy': '1.15.3', 'starlette': '1.7.0'}) beyond the walk ({'click': '8.5.0', 'fastapi': '0.90.1', 'jinja2': '3.1.6', 'markupsafe': '3.0.4', 'scipy': '1.15.3', 'starlette': '0.23.1'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "gracefulning-tidpo",
+    "url": "https://github.com/gracefulning/TIDPO",
+    "commit": "e04a0926869a8f9fe9c9e9ce395394fd2c697fe2",
+    "commit_date": "2026-01-26",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test_batch_size_fix.py test_triplet_loss.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (transformers family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [7, 0]); a newer passing joint set exists ({'numpy': '2.0.2', 'tokenizers': '0.22.2', 'torch': '2.0.1', 'transformers': '4.57.6'}) beyond the walk ({'numpy': '2.0.2', 'tokenizers': '0.13.3', 'torch': '2.0.1', 'transformers': '4.33.3'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "mouralucas-weather-request",
+    "url": "https://github.com/mouralucas/weather_request",
+    "commit": "0e6cef2007932a573eb6e7e9efea9e38b4c6d900",
+    "commit_date": "2024-08-26",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_weather.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (httpx family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [5, 0]); a newer passing joint set exists ({'fastapi': '0.143.0', 'pydantic': '2.13.5', 'pydantic-settings': '2.15.0', 'sqlalchemy': '2.0.54', 'starlette': '1.7.0', 'httpx': '0.27.2'}) beyond the walk ({'fastapi': '0.109.2', 'pydantic': '2.13.5', 'pydantic-settings': '2.15.0', 'sqlalchemy': '2.0.54', 'starlette': '0.36.3', 'httpx': '0.27.2'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "sampletext117-testing-web",
+    "url": "https://github.com/sampletext117/testing-web",
+    "commit": "5fd9c9dbb6ce93e214ba0a5aa4e6e11428ff6c90",
+    "commit_date": "2025-02-25",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/data_access/test_campaign_program_repository.py tests/data_access/test_candidate_account_repository.py tests/data_access/test_candidate_repository.py tests/data_access/test_election_repository.py tests/data_access/test_passport_repository.py tests/data_access/test_vote_repository.py tests/data_access/test_voter_repository.py tests/e2e/test_evoting_scenario.py tests/integration/test_campaign_program_repository_integration.py tests/integration/test_candidate_account_repository_integration.py tests/integration/test_candidate_repository_integration.py tests/integration/test_connection_integration.py tests/integration/test_election_repository_integration.py tests/integration/test_finalize_election_usecase_integration.py tests/integration/test_passport_repository_integration.py tests/integration/test_register_candidate_usecase_integration.py tests/integration/test_register_election_usecase_integration.py tests/integration/test_register_voter_usecase_integration.py tests/integration/test_vote_repository_integration.py tests/integration/test_vote_usecase_integration.py tests/integration/test_voter_repository_integration.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (httpx family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [22, 34]); a newer passing joint set exists ({'fastapi': '0.125.0', 'starlette': '0.49.3', 'httpx': '0.28.1', 'pytest': '8.4.2'}) beyond the walk ({'fastapi': '0.95.1', 'starlette': '0.26.1', 'httpx': '0.28.1', 'pytest': '8.4.2'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "vladhaidukkk-todo-cli",
+    "url": "https://github.com/vladhaidukkk/todo-cli",
+    "commit": "841a20449f05c7a4175a29b4b154b5ed082e04bb",
+    "commit_date": "2024-06-16",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_parse_str_to_date.py tests/test_target_date_parser.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (pydantic family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [20, 0]); a newer passing joint set exists ({'alembic': '1.16.5', 'click': '8.1.8', 'markupsafe': '3.0.4', 'pydantic': '2.11.10', 'pydantic-core': '2.33.2', 'pydantic-settings': '2.11.0'}) beyond the walk ({'alembic': '1.16.5', 'click': '8.1.8', 'markupsafe': '3.0.4', 'pydantic': '2.7.4', 'pydantic-core': '2.18.4', 'pydantic-settings': '2.11.0'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\"",
+      "{python} -m pip install \"pytest-mock==3.14.0\""
+    ]
+  },
+  {
+    "name": "accelergy-project-pytorch2timeloop-conve",
+    "url": "https://github.com/Accelergy-Project/pytorch2timeloop-converter",
+    "commit": "5de0d6bb4e718619d64673b94a50a8640242a8fe",
+    "commit_date": "2024-10-08",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.10",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test/test_configs.py test/test_mobilenet_v2.py test/test_mobilenet_v3.py test/test_resnet.py test/test_simple_cnn.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (transformers family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [9, 0]); a newer passing joint set exists ({'torch': '2.14.1', 'torchvision': '0.29.1', 'numpy': '2.2.6', 'transformers': '5.19.0'}) beyond the walk ({'torch': '2.4.0', 'torchvision': '0.19.0', 'numpy': '2.2.6', 'transformers': '5.13.1'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "dev-shetty-rudra-cide",
+    "url": "https://github.com/dev-shetty/rudra-cide",
+    "commit": "1ddb8f92ecdb1086a1d9bf5433da657638e21bd1",
+    "commit_date": "2024-03-03",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "web/api/requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "web/api/torcrawl/modules/tests/test_checker.py web/api/torcrawl/modules/tests/test_crawler.py web/api/torcrawl/modules/tests/test_extractor.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (httpx family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [8, 0]); a newer passing joint set exists ({'httpcore': '1.0.9', 'httpx': '0.28.1', 'fastapi': '0.128.8', 'pydantic': '2.13.5', 'starlette': '0.49.3', 'openai': '2.48.0'}) beyond the walk ({'httpcore': '0.12.3', 'httpx': '0.17.1', 'fastapi': '0.93.0', 'pydantic': '1.10.26', 'starlette': '0.25.0', 'openai': '0.28.1'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "qdata-pgrad",
+    "url": "https://github.com/QData/PGrad",
+    "commit": "c075c0a3e2c6842bb13201d032d9917b66f03747",
+    "commit_date": "2023-05-03",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.8",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "domainbed/test/lib/test_misc.py domainbed/test/lib/test_query.py domainbed/test/scripts/test_collect_results.py domainbed/test/scripts/test_sweep.py domainbed/test/scripts/test_train.py domainbed/test/test_datasets.py domainbed/test/test_hparams_registry.py domainbed/test/test_model_selection.py domainbed/test/test_models.py domainbed/test/test_networks.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (numpy family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [71, 12]); a newer passing joint set exists ({'numpy': '1.24.4', 'torchvision': '0.11.3', 'torch': '1.10.2'}) beyond the walk ({'numpy': '1.24.4', 'torchvision': '0.8.2', 'torch': '1.7.1'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "testinglaboratory-rest-api-introduction-",
+    "url": "https://github.com/TestingLaboratory/rest-api-introduction-app",
+    "commit": "8a1038abb573399f8b60ed1e8947491a4f0e1727",
+    "commit_date": "2023-04-06",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "rest_introduction_app/api/challenges/challenge_6/test/api_test.py rest_introduction_app/api/challenges/challenge_6/test/model_test.py tests/reactor_challenge/test_informartion.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (marshmallow family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [9, 23]); a newer passing joint set exists ({'fastapi': '0.128.8', 'marshmallow': '3.26.2', 'starlette': '0.49.3', 'httpx': '0.27.2'}) beyond the walk ({'fastapi': '0.87.0', 'marshmallow': '3.26.2', 'starlette': '0.21.0', 'httpx': '0.27.2'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "abraham-ai-eden",
+    "url": "https://github.com/abraham-ai/eden",
+    "commit": "04b6b3de056f79afbdbdf1d8fa129ffb97f190f8",
+    "commit_date": "2022-10-25",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "eden/tests/test_block.py eden/tests/test_data_types.py eden/tests/test_queue.py eden/tests/test_result_storage.py eden/tests/test_schemas.py eden/tests/test_update_config.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (celery family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [3, 4]); a newer passing joint set exists ({'amqp': '5.3.1', 'billiard': '4.2.4', 'celery': '5.3.4', 'fastapi': '0.68.2', 'h11': '0.16.0', 'kombu': '5.3.7', 'numpy': '1.26.4', 'pydantic': '1.9.2'}) beyond the walk ({'amqp': '5.3.1', 'billiard': '3.6.4.0', 'celery': '5.2.7', 'fastapi': '0.68.2', 'h11': '0.16.0', 'kombu': '5.3.7', 'numpy': '1.26.4', 'pydantic': '1.9.2'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "dmytro-gutorka-backendpython",
+    "url": "https://github.com/dmytro-gutorka/BackendPython",
+    "commit": "d41ce5f76e23c1f4385b8b465e9c1bc686f8f134",
+    "commit_date": "2025-03-04",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "hw23-2/url_shortener/requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "hw7/test_task6_pytests.py hw7/test_task_1.py hw7/test_task_2.py hw7/test_task_3.py hw7/test_task_7.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (pydantic family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [19, 0]); a newer passing joint set exists ({'anyio': '4.6.2.post1', 'fastapi': '0.98.0', 'h11': '0.16.0', 'pydantic': '1.10.26', 'starlette': '0.27.0'}) beyond the walk ({'anyio': '4.6.2.post1', 'fastapi': '0.84.0', 'h11': '0.16.0', 'pydantic': '1.10.26', 'starlette': '0.19.1'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "eddyxwong-comp9447",
+    "url": "https://github.com/eddyxwong/COMP9447",
+    "commit": "8a9938b31b4843bbd4f7d1465f34857e0636e4ff",
+    "commit_date": "2022-08-11",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_AllowStatementCreator.py tests/test_CaseConverter.py tests/test_CreateAction.py tests/test_GenerateIAMPolicy.py tests/test_PolicyDiff.py tests/test_ToxicCheck.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (aws family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [15, 2]); a newer passing joint set exists ({'boto3': '1.28.54', 'botocore': '1.31.85'}) beyond the walk ({'boto3': '1.24.96', 'botocore': '1.27.96'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "gitadum-querympics",
+    "url": "https://github.com/gitadum/querympics",
+    "commit": "ecfd5e07c95329aaccdcd95658ea1d9a77687667",
+    "commit_date": "2023-07-10",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test/api_test.py test/query_test.py test/utils/helper_test.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (sqlalchemy family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [12, 10]); a newer passing joint set exists ({'databases': '0.8.0', 'fastapi': '0.106.0', 'h11': '0.14.0', 'httpcore': '1.0.8', 'httpx': '0.28.1', 'numpy': '2.0.2', 'pandas': '2.3.3', 'pydantic': '2.13.5'}) beyond the walk ({'databases': '0.8.0', 'fastapi': '0.106.0', 'h11': '0.14.0', 'httpcore': '0.17.3', 'httpx': '0.24.1', 'numpy': '2.0.2', 'pandas': '2.3.3', 'pydantic': '2.13.5'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "jiyewise-lama",
+    "url": "https://github.com/jiyewise/LAMA",
+    "commit": "ba380dbea1f34d5eaa23826db5a3b3b2337c7c38",
+    "commit_date": "2024-01-20",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "fairmotion/fairmotion/tasks/clustering/test_generate_features.py fairmotion/tests/test_conversions.py fairmotion/tests/test_motion.py fairmotion/tests/test_operations.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (tensorflow family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [12, 8]); a newer passing joint set exists ({'numpy': '1.26.4', 'tensorflow': '2.19.1', 'protobuf': '3.20.3'}) beyond the walk ({'numpy': '1.26.4', 'tensorflow': '2.11.1', 'protobuf': '3.19.6'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\"",
+      "{python} -m pip install \"torch==2.1.2\""
+    ]
+  },
+  {
+    "name": "nikita-mulesoft-hackathon",
+    "url": "https://github.com/nikita-mulesoft/hackathon",
+    "commit": "2eccdeb1e49903154ab2ff1496308b26fe5530bf",
+    "commit_date": "2025-06-26",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test_audio_conversion.py test_integrated_flow.py test_meeting_flow_complete.py test_user_mapping.py test_voice_proxy.py test_voice_slack_integration.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (langchain family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [8, 1]); a newer passing joint set exists ({'djangorestframework': '3.16.1', 'langchain': '0.2.17', 'langchain-community': '0.2.19', 'celery': '5.6.3', 'httpx': '0.25.2'}) beyond the walk ({'djangorestframework': '3.16.1', 'langchain': '0.1.0', 'langchain-community': '0.0.13', 'celery': '5.6.3', 'httpx': '0.25.2'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "poseidon1402-telechargeo",
+    "url": "https://github.com/Poseidon1402/telechargeo",
+    "commit": "523975d729cb2ccee74ef9dc6872571680a1fb45",
+    "commit_date": "2022-10-09",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "test/test_Video.py test/test_audioHandler.py test/test_cli.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (httpx family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [1, 2]); a newer passing joint set exists ({'anyio': '3.7.1', 'h11': '0.14.0', 'httpcore': '0.17.3', 'httpx': '0.24.1', 'protobuf': '4.25.9'}) beyond the walk ({'anyio': '3.7.1', 'h11': '0.12.0', 'httpcore': '0.15.0', 'httpx': '0.24.1', 'protobuf': '4.25.9'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "rehket-snowplow",
+    "url": "https://github.com/Rehket/snowplow",
+    "commit": "8fd57045744af1eabf25fc5a3e2d2235c228a3b0",
+    "commit_date": "2023-10-23",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_recon.py tests/test_sfdc.py tests/test_snowflake.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (pydantic family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [2, 6]); a newer passing joint set exists ({'anyio': '3.7.1', 'h11': '0.12.0', 'httpcore': '0.15.0', 'httpx': '0.24.1', 'pydantic': '1.10.26'}) beyond the walk ({'anyio': '3.7.1', 'h11': '0.12.0', 'httpcore': '0.14.7', 'httpx': '0.22.0', 'pydantic': '1.10.26'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "rub-syssec-wavefake",
+    "url": "https://github.com/RUB-SysSec/WaveFake",
+    "commit": "d52d51b9ccdb0cec3f484e84b228791f06b955be",
+    "commit_date": "2021-12-16",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "requirements.txt",
+    "is_installable": true,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "tests/test_dataset.py tests/test_gmm.py tests/test_lfcc.py tests/test_preprocessing.py tests/test_trainer.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (numpy family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [21, 3]); a newer passing joint set exists ({'llvmlite': '0.43.0', 'matplotlib': '3.9.4', 'numba': '0.60.0', 'numpy': '1.23.5', 'pandas': '1.5.3', 'scikit-learn': '1.1.3', 'scipy': '1.13.1', 'torch': '1.8.1'}) beyond the walk ({'llvmlite': '0.36.0', 'matplotlib': '3.9.4', 'numba': '0.53.1', 'numpy': '1.23.5', 'pandas': '1.5.3', 'scikit-learn': '1.1.3', 'scipy': '1.13.1', 'torch': '1.8.1'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "thallyssonklein-brainagriculturetest",
+    "url": "https://github.com/ThallyssonKlein/BrainAgricultureTest",
+    "commit": "d7da68d43876464c2992ab0fffaebfeb724f0fba",
+    "commit_date": "2025-01-17",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.9",
+    "requirements_file": "backend/requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "backend/tests/crop_controller_test.py backend/tests/crop_service_test.py backend/tests/culture_controller_test.py backend/tests/culture_service_test.py backend/tests/dashboard_controller_test.py backend/tests/farm_controller_test.py backend/tests/farm_service_test.py backend/tests/farmer_controller_test.py backend/tests/inbound_crop_adapter_test.py backend/tests/inbound_culture_adapter_test.py backend/tests/inbound_dashboard_adapter_test.py backend/tests/inbound_farm_adapter_test.py backend/tests/inbound_farmer_adapter_test.py backend/tests/loggable_test.py backend/tests/outbound_crop_adapter_test.py backend/tests/outbound_crop_repository_port_test.py backend/tests/outbound_culture_adapter_test.py backend/tests/outbound_culture_repository_port_test.py backend/tests/outbound_farm_adapter_test.py backend/tests/outbound_farm_repository_port_test.py backend/tests/outbound_farmer_adapter_test.py backend/tests/outbound_farmer_repository_port_test.py backend/tests/person_service_test.py backend/tests/uuidmiddleware_test.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (sqlalchemy family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [147, 0]); a newer passing joint set exists ({'anyio': '4.12.1', 'databases': '0.9.0', 'fastapi': '0.128.8', 'h11': '0.16.0', 'pydantic': '2.11.10', 'pydantic-core': '2.33.2', 'sqlalchemy': '2.0.54', 'starlette': '0.49.3'}) beyond the walk ({'anyio': '4.12.1', 'databases': '0.9.0', 'fastapi': '0.128.8', 'h11': '0.16.0', 'pydantic': '2.10.6', 'pydantic-core': '2.27.2', 'sqlalchemy': '2.0.54', 'starlette': '0.49.3'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  },
+  {
+    "name": "wangxinyilinda-causal-balancing-for-doma",
+    "url": "https://github.com/WANGXinyiLinda/causal-balancing-for-domain-generalization",
+    "commit": "12c31214fc6f495c2230ce03699d30c0c145d48a",
+    "commit_date": "2023-05-17",
+    "domain": "ft-test",
+    "is_ml_research": false,
+    "python_version": "3.8",
+    "requirements_file": "requirements.txt",
+    "is_installable": false,
+    "validation": {
+      "type": "pytest",
+      "pytest_target": "domainbed/test/lib/test_misc.py domainbed/test/lib/test_query.py domainbed/test/scripts/test_collect_results.py domainbed/test/scripts/test_sweep.py domainbed/test/scripts/test_train.py domainbed/test/test_datasets.py domainbed/test/test_hparams_registry.py domainbed/test/test_model_selection.py domainbed/test/test_models.py domainbed/test/test_networks.py"
+    },
+    "validation_provenance": "project",
+    "validation_notes": "Fine-tuning test candidate (numpy family), eligible under docs/FT_TEST_SELECTION.md: baseline passes in the walk check (passed/failed [303, 75]); a newer passing joint set exists ({'numpy': '1.24.4', 'torchvision': '0.11.3', 'torch': '1.10.2'}) beyond the walk ({'numpy': '1.24.4', 'torchvision': '0.8.2', 'torch': '1.7.1'}). Chosen by structure, before any LLM run.",
+    "screened_date": "2026-10-09",
+    "environment_setup": [
+      "{python} -c \"import pytest\" 2>/dev/null || {python} -m pip install \"pytest==7.1.3\""
+    ]
+  }
+]

@@ -1,0 +1,195 @@
+{
+  "subject": "authors-of-leisure",
+  "arm": "aura_full_qwen14b",
+  "outcome": "modernized",
+  "updated": {
+    "django": [
+      "2.2.16",
+      "3.0"
+    ],
+    "pytest": [
+      "5.3.5",
+      "6.2.5"
+    ],
+    "pillow": [
+      "9.4.0",
+      "10.4.0"
+    ],
+    "mixer": [
+      "7.1.2",
+      "7.2.2"
+    ],
+    "wcwidth": [
+      "0.2.8",
+      "0.8.5"
+    ],
+    "urllib3": [
+      "1.25.11",
+      "2.2.3"
+    ],
+    "requests": [
+      "2.22.0",
+      "2.32.4"
+    ],
+    "sqlparse": [
+      "0.4.4",
+      "0.5.5"
+    ],
+    "sorl-thumbnail": [
+      "12.6.3",
+      "12.10.0"
+    ],
+    "six": [
+      "1.14.0",
+      "1.17.0"
+    ],
+    "pytz": [
+      "2023.3.post1",
+      "2026.4"
+    ],
+    "python-dateutil": [
+      "2.8.2",
+      "2.9.0.post0"
+    ],
+    "pytest-pythonpath": [
+      "0.7.3",
+      "0.7.4"
+    ],
+    "pytest-django": [
+      "3.8.0",
+      "4.5.2"
+    ],
+    "pluggy": [
+      "0.13.1",
+      "1.5.0"
+    ],
+    "packaging": [
+      "23.2",
+      "26.2"
+    ],
+    "more-itertools": [
+      "10.1.0",
+      "10.5.0"
+    ],
+    "idna": [
+      "2.8",
+      "3.15"
+    ],
+    "django-debug-toolbar": [
+      "2.2",
+      "3.2.4"
+    ],
+    "chardet": [
+      "3.0.4",
+      "5.2.0"
+    ],
+    "certifi": [
+      "2023.7.22",
+      "2026.7.22"
+    ],
+    "attrs": [
+      "23.1.0",
+      "25.3.0"
+    ]
+  },
+  "reason": "",
+  "wall_clock_s": 1570.94,
+  "log_path": "results/authors-of-leisure/authors-of-leisure__aura_full_qwen14b.jsonl",
+  "counters": {
+    "attempts": 292,
+    "attempts_baseline": 1,
+    "install_seconds": 1924.2903242111206,
+    "passes": 2,
+    "prefiltered_versions": 378,
+    "attempts_linear": 282,
+    "batched_probes": 257,
+    "batches": 44,
+    "batch_confirmations": 5,
+    "dry_run_rejections": 534,
+    "routing_skipped_linear": 4,
+    "probes_saved": 499,
+    "greedy_dry_run_rejections": 8,
+    "attempts_greedy": 2,
+    "greedy_skipped_no_group": 4,
+    "llm_calls": 21,
+    "prompt_tokens": 24269,
+    "completion_tokens": 1576,
+    "llm_cost_usd": 0.0,
+    "llm_seconds": 27.759000000000004,
+    "llm_rejected_versions": 69,
+    "probes_deduplicated": 3,
+    "attempts_llm": 7
+  },
+  "version_age_before": {
+    "n_packages": 24,
+    "mean_releases_behind": 35.25,
+    "median_releases_behind": 13.5,
+    "max_releases_behind": 308,
+    "at_latest": 1,
+    "at_latest_pct": 4.17,
+    "per_package": {
+      "django-debug-toolbar": 38,
+      "django": 184,
+      "pytest-django": 20,
+      "pytest-pythonpath": 1,
+      "pytest": 57,
+      "requests": 24,
+      "six": 3,
+      "sorl-thumbnail": 7,
+      "mixer": 3,
+      "faker": 308,
+      "pillow": 16,
+      "attrs": 9,
+      "certifi": 20,
+      "chardet": 19,
+      "idna": 23,
+      "more-itertools": 11,
+      "packaging": 8,
+      "pluggy": 7,
+      "py": 0,
+      "python-dateutil": 2,
+      "pytz": 10,
+      "sqlparse": 7,
+      "urllib3": 43,
+      "wcwidth": 26
+    },
+    "unknown": []
+  },
+  "version_age_after": {
+    "n_packages": 24,
+    "mean_releases_behind": 25.833,
+    "median_releases_behind": 2.5,
+    "max_releases_behind": 308,
+    "at_latest": 7,
+    "at_latest_pct": 29.17,
+    "per_package": {
+      "django-debug-toolbar": 29,
+      "django": 171,
+      "pytest-django": 10,
+      "pytest-pythonpath": 0,
+      "pytest": 41,
+      "requests": 6,
+      "six": 0,
+      "sorl-thumbnail": 3,
+      "mixer": 0,
+      "faker": 308,
+      "pillow": 9,
+      "attrs": 2,
+      "certifi": 0,
+      "chardet": 15,
+      "idna": 5,
+      "more-itertools": 7,
+      "packaging": 1,
+      "pluggy": 1,
+      "py": 0,
+      "python-dateutil": 0,
+      "pytz": 0,
+      "sqlparse": 1,
+      "urllib3": 9,
+      "wcwidth": 2
+    },
+    "unknown": []
+  },
+  "error": "",
+  "baseline_stage": "frozen"
+}

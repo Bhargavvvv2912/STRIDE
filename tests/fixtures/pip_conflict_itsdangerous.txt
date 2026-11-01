@@ -1,0 +1,26 @@
+ollector/aura_linear_greedy/.aura_probe_4_requirements.txt (line 15))
+  Using cached pytest-7.4.4-py3-none-any.whl.metadata (7.9 kB)
+Collecting six==1.17.0 (from -r /work/mean-review-collector/aura_linear_greedy/.aura_probe_4_requirements.txt (line 16))
+  Using cached six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting wcwidth==0.8.3 (from -r /work/mean-review-collector/aura_linear_greedy/.aura_probe_4_requirements.txt (line 17))
+  Using cached wcwidth-0.8.3-py3-none-any.whl.metadata (43 kB)
+Collecting Werkzeug==1.0.1 (from -r /work/mean-review-collector/aura_linear_greedy/.aura_probe_4_requirements.txt (line 18))
+  Using cached Werkzeug-1.0.1-py2.py3-none-any.whl.metadata (4.7 kB)
+Collecting zipp==3.23.1 (from -r /work/mean-review-collector/aura_linear_greedy/.aura_probe_4_requirements.txt (line 19))
+  Using cached zipp-3.23.1-py3-none-any.whl.metadata (3.6 kB)
+INFO: pip is looking at multiple versions of flask to determine which version is compatible with other requirements. This could take a while.
+
+The conflict is caused by:
+    The user requested itsdangerous==2.2.0
+    flask 1.1.4 depends on itsdangerous<2.0 and >=0.24
+
+Additionally, some packages in these conflicts have no matching distributions available for your environment:
+    itsdangerous
+
+To fix this you could try to:
+1. loosen the range of package versions you've specified
+2. remove package versions to allow pip to attempt to solve the dependency conflict
+
+
+ERROR: Cannot install -r /work/mean-review-collector/aura_linear_greedy/.aura_probe_4_requirements.txt (line 4) and itsdangerous==2.2.0 because these package versions have conflicting dependencies.
+ERROR: ResolutionImpossible: for help visit https://pip.pypa.io/en/latest/topics/dependency-resolution/#dealing-with-dependency-conflicts

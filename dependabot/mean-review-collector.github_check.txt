@@ -1,0 +1,23 @@
+package                  GitHub final        our arm   GitHub PR (state)          collected
+attrs                          26.1.0         26.1.0   26.1.0 (merged)            26.1.0
+click                             7.0            7.0   8.5.0 (open)               8.5.0
+coverage                        4.5.4          4.5.4   7.16.1 (open)              7.16.1
+flask                           1.1.1          1.1.1   3.1.3 (open)               3.1.3
+gunicorn                       19.9.0         19.9.0   26.2.0 (open)              26.2.0
+importlib-metadata              1.1.0          1.1.0   9.0.1 (open)               9.0.1
+itsdangerous                    1.1.0          1.1.0   2.2.0 (open)               2.2.0
+jinja2                         2.10.3         2.10.3   3.1.6 (open)               3.1.6
+markupsafe                      1.1.1          1.1.1   3.0.3 (open)               3.0.3
+more-itertools                  8.0.0          8.0.0   11.1.0 (open)              11.1.0
+packaging                        26.3           26.3   26.3 (merged)              26.3
+pluggy                         0.13.1         0.13.1   1.6.0 (open)               1.6.0
+py                             1.11.0         1.11.0   1.11.0 (merged)            1.11.0
+pyparsing                       3.3.2          3.3.2   3.3.2 (merged)             3.3.2
+pytest                          5.3.1          5.3.1   9.1.1 (open)               9.1.1
+six                            1.17.0         1.17.0   1.17.0 (merged)            1.17.0
+wcwidth                         0.8.3          0.8.3   0.8.3 (merged)             0.8.3
+werkzeug                       0.16.0         0.16.0   3.1.8 (open)               3.1.8
+zipp                            0.6.0          0.6.0   4.1.0 (open)               4.1.0
+
+final requirements agree on 19 of 19 packages
+GitHub: 19 PRs opened, 6 merged

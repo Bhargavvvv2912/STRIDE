@@ -1,0 +1,13 @@
+Flask==1.1.1
+pytest==5.3.4
+coverage==5.0.3
+attrs==19.3.0
+click==7.0
+itsdangerous==1.1.0
+jinja2==2.11.0
+markupsafe==1.1.1
+more-itertools==8.1.0
+packaging==20.1
+py==1.8.1
+wcwidth==0.1.8
+werkzeug==0.16.1

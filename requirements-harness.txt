@@ -1,0 +1,35 @@
+# The AURA evaluation harness itself -- the environment that *runs* AURA, not
+# the ones AURA builds for each subject (those are created per probe from the
+# subject's own requirements and Python version).
+#
+# Exact pins, taken from the environment the test suite passes in, so every
+# machine that runs the campaign runs the same harness.
+#
+#   python3.11 -m venv .devenv
+#   .devenv/bin/pip install -r requirements-harness.txt
+#
+# Direct needs: packaging, pypi-simple (package index), pytest (test suite),
+# PyYAML (reading dependabot-cli output).
+# Everything else below is what those three pull in.
+annotated-types==0.8.0
+attrs==26.1.0
+beautifulsoup4==4.15.0
+certifi==2026.7.22
+charset-normalizer==3.5.1
+idna==3.19
+iniconfig==2.3.0
+mailbits==0.2.3
+packaging==26.3
+pluggy==1.6.0
+pydantic==2.13.5
+pydantic_core==2.46.5
+Pygments==2.21.0
+pypi-simple==1.8.0
+pytest==9.1.1
+PyYAML==6.0.3
+requests==2.34.2
+soupsieve==2.9.2
+tenacity==9.1.4
+typing-inspection==0.4.4
+typing_extensions==4.16.0
+urllib3==2.7.0

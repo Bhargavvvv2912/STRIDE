@@ -1,0 +1,133 @@
+{
+  "subject": "graphene-mongodb",
+  "arm": "aura_full_qwen14b",
+  "outcome": "modernized",
+  "updated": {
+    "graphene": [
+      "2.1",
+      "2.1.6"
+    ],
+    "mongoengine": [
+      "0.15.0",
+      "0.29.3"
+    ],
+    "six": [
+      "1.11.0",
+      "1.17.0"
+    ],
+    "iso8601": [
+      "0.1.12",
+      "2.1.0"
+    ],
+    "typing": [
+      "3.6.4",
+      "3.7.4.3"
+    ],
+    "rx": [
+      "1.6.1",
+      "3.2.0"
+    ],
+    "pyparsing": [
+      "2.2.0",
+      "3.3.3"
+    ],
+    "pymongo": [
+      "3.6.1",
+      "4.18.3"
+    ],
+    "promise": [
+      "2.1",
+      "2.3"
+    ],
+    "graphql-core": [
+      "2.0",
+      "2.2"
+    ],
+    "appdirs": [
+      "1.4.3",
+      "1.4.4"
+    ],
+    "aniso8601": [
+      "3.0.0",
+      "6.0.0"
+    ]
+  },
+  "reason": "",
+  "wall_clock_s": 448.26,
+  "log_path": "results/graphene-mongodb/graphene-mongodb__aura_full_qwen14b.jsonl",
+  "counters": {
+    "attempts": 44,
+    "attempts_baseline": 1,
+    "install_seconds": 250.4846441745758,
+    "baseline_failing_tests": 45,
+    "passes": 3,
+    "dry_run_rejections": 209,
+    "attempts_linear": 25,
+    "batched_probes": 11,
+    "batches": 4,
+    "batch_confirmations": 4,
+    "prefiltered_versions": 5,
+    "greedy_dry_run_rejections": 15,
+    "attempts_greedy": 4,
+    "llm_calls": 21,
+    "prompt_tokens": 16694,
+    "completion_tokens": 1320,
+    "llm_cost_usd": 0.0,
+    "llm_seconds": 18.082,
+    "attempts_llm": 14,
+    "llm_rejected_versions": 18,
+    "probes_deduplicated": 8,
+    "routing_skipped_linear": 1,
+    "probes_saved": 7
+  },
+  "version_age_before": {
+    "n_packages": 13,
+    "mean_releases_behind": 18.538,
+    "median_releases_behind": 11,
+    "max_releases_behind": 63,
+    "at_latest": 0,
+    "at_latest_pct": 0.0,
+    "per_package": {
+      "aniso8601": 16,
+      "appdirs": 1,
+      "graphene": 19,
+      "graphql-core": 34,
+      "graphql-relay": 11,
+      "iso8601": 10,
+      "mongoengine": 29,
+      "promise": 3,
+      "pymongo": 63,
+      "pyparsing": 37,
+      "rx": 6,
+      "six": 6,
+      "typing": 6
+    },
+    "unknown": []
+  },
+  "version_age_after": {
+    "n_packages": 13,
+    "mean_releases_behind": 5.077,
+    "median_releases_behind": 0,
+    "max_releases_behind": 32,
+    "at_latest": 8,
+    "at_latest_pct": 61.54,
+    "per_package": {
+      "aniso8601": 8,
+      "appdirs": 0,
+      "graphene": 14,
+      "graphql-core": 32,
+      "graphql-relay": 11,
+      "iso8601": 0,
+      "mongoengine": 0,
+      "promise": 0,
+      "pymongo": 0,
+      "pyparsing": 0,
+      "rx": 0,
+      "six": 0,
+      "typing": 1
+    },
+    "unknown": []
+  },
+  "error": "",
+  "baseline_stage": "frozen"
+}

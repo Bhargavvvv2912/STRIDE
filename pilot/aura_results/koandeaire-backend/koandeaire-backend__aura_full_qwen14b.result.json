@@ -1,0 +1,143 @@
+{
+  "subject": "koandeaire-backend",
+  "arm": "aura_full_qwen14b",
+  "outcome": "modernized",
+  "updated": {
+    "sqlalchemy": [
+      "1.3.20",
+      "1.4.54"
+    ],
+    "alembic": [
+      "1.4.3",
+      "1.16.5"
+    ],
+    "fastapi": [
+      "0.60.0",
+      "0.76.0"
+    ],
+    "databases": [
+      "0.3.2",
+      "0.8.0"
+    ],
+    "click": [
+      "7.1.2",
+      "8.1.8"
+    ],
+    "uvicorn": [
+      "0.11.7",
+      "0.39.0"
+    ],
+    "tabulate": [
+      "0.8.7",
+      "0.9.0"
+    ],
+    "geopy": [
+      "2.0.0",
+      "2.5.0"
+    ],
+    "requests": [
+      "2.24.0",
+      "2.32.5"
+    ],
+    "pytest": [
+      "6.0.2",
+      "8.4.2"
+    ],
+    "pyflakes": [
+      "2.2.0",
+      "3.4.0"
+    ],
+    "gunicorn": [
+      "20.0.4",
+      "23.0.0"
+    ],
+    "black": [
+      "20.8b1",
+      "25.11.0"
+    ],
+    "aiosqlite": [
+      "0.15.0",
+      "0.22.1"
+    ]
+  },
+  "reason": "",
+  "wall_clock_s": 2378.06,
+  "log_path": "results/koandeaire-backend/koandeaire-backend__aura_full_qwen14b.jsonl",
+  "counters": {
+    "attempts": 543,
+    "attempts_baseline": 1,
+    "install_seconds": 3783.7010815143585,
+    "passes": 4,
+    "prefiltered_versions": 287,
+    "attempts_linear": 529,
+    "batched_probes": 642,
+    "batches": 108,
+    "batch_confirmations": 4,
+    "dry_run_rejections": 263,
+    "routing_skipped_linear": 3,
+    "probes_saved": 174,
+    "greedy_dry_run_rejections": 7,
+    "attempts_greedy": 3,
+    "llm_calls": 25,
+    "prompt_tokens": 30828,
+    "completion_tokens": 2367,
+    "llm_cost_usd": 0.0,
+    "llm_seconds": 36.24300000000001,
+    "llm_rejected_versions": 94,
+    "attempts_llm": 10,
+    "probes_deduplicated": 147,
+    "greedy_skipped_no_group": 3
+  },
+  "version_age_before": {
+    "n_packages": 14,
+    "mean_releases_behind": 48.143,
+    "median_releases_behind": 23.5,
+    "max_releases_behind": 205,
+    "at_latest": 0,
+    "at_latest_pct": 0.0,
+    "per_package": {
+      "fastapi": 205,
+      "uvicorn": 85,
+      "gunicorn": 20,
+      "requests": 22,
+      "pytest": 50,
+      "pyflakes": 13,
+      "black": 34,
+      "aiosqlite": 9,
+      "databases": 16,
+      "sqlalchemy": 115,
+      "alembic": 69,
+      "geopy": 6,
+      "click": 25,
+      "tabulate": 5
+    },
+    "unknown": []
+  },
+  "version_age_after": {
+    "n_packages": 14,
+    "mean_releases_behind": 22.0,
+    "median_releases_behind": 6.0,
+    "max_releases_behind": 175,
+    "at_latest": 2,
+    "at_latest_pct": 14.29,
+    "per_package": {
+      "fastapi": 175,
+      "uvicorn": 20,
+      "gunicorn": 13,
+      "requests": 5,
+      "pytest": 6,
+      "pyflakes": 1,
+      "black": 6,
+      "aiosqlite": 0,
+      "databases": 1,
+      "sqlalchemy": 56,
+      "alembic": 13,
+      "geopy": 0,
+      "click": 11,
+      "tabulate": 1
+    },
+    "unknown": []
+  },
+  "error": "",
+  "baseline_stage": "frozen"
+}
