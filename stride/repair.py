@@ -261,7 +261,9 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
     ok, new_failures, drifted, _ = validator.judge(after)
     result.new_failures = new_failures + drifted
 
-    if tampered:
+    if run.exit_status == "crashed" and not result.files_changed:
+        result.reason = "agent_error"          # infrastructure, not a failed repair
+    elif tampered:
         result.reason = "edited_protected_files"
     elif result.skips_added:
         result.reason = "added_skips"
