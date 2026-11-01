@@ -45,6 +45,8 @@ mkdir -p "$AURA_VENV_ROOT" "$STRIDE_WORK" "$PIP_CACHE"
 # so the context window is 32k (Ollama's default would cut the front off).
 export OLLAMA_HOST="127.0.0.1:$((11500 + SLURM_JOB_ID % 5000))"
 export OLLAMA_CONTEXT_LENGTH="${OLLAMA_CONTEXT_LENGTH:-32768}"
+export OLLAMA_LOAD_TIMEOUT="${OLLAMA_LOAD_TIMEOUT:-20m}"   # server settings: before `serve`
+export OLLAMA_KEEP_ALIVE="${OLLAMA_KEEP_ALIVE:-24h}"
 "$OLLAMA_BIN" serve > "slurm_logs/ollama_stride_$SLURM_JOB_ID.log" 2>&1 &
 OLLAMA_PID=$!
 trap 'kill "$OLLAMA_PID" 2>/dev/null || true; rm -rf "${AURA_VENV_ROOT:?}" "${STRIDE_WORK:?}"' EXIT
@@ -53,6 +55,16 @@ for _ in $(seq 1 60); do
   sleep 2
 done
 curl -s "http://$OLLAMA_HOST/api/tags" >/dev/null || { echo "ollama did not start"; exit 1; }
+
+# Load the model before STRIDE starts. On a GPU shared with other jobs the
+# first load can take minutes; Ollama's default 5-minute load timeout then
+# fails the agent's first call, which STRIDE would count as a failed repair.
+STRIDE_MODEL="${STRIDE_MODEL:-qwen2.5-coder:14b}"
+echo "loading $STRIDE_MODEL (context $OLLAMA_CONTEXT_LENGTH) ..."
+curl -s --max-time 1500 "http://$OLLAMA_HOST/api/generate" \
+  -d "{\"model\": \"$STRIDE_MODEL\", \"prompt\": \"ok\", \"stream\": false, \"keep_alive\": \"24h\"}" \
+  | grep -q '"done":true' || { echo "model did not load; see slurm_logs/ollama_stride_$SLURM_JOB_ID.log"; exit 1; }
+echo "model loaded"
 
 export AURA_MODELS="${AURA_MODELS:-qwen14b}"
 export MSWEA_COST_TRACKING=ignore_errors
