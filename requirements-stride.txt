@@ -1,0 +1,2 @@
+-r requirements-harness.txt
+mini-swe-agent==2.4.6

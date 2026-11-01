@@ -32,3 +32,7 @@ screening/to_screen*.txt
 screening/rescreen*.txt
 data/ft/
 dist/
+results/
+workspaces/
+.devenv/
+slurm_logs/
