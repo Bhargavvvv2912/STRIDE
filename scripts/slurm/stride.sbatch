@@ -42,7 +42,14 @@ done
 
 echo "subject : $SUBJECT   arm: $ARM   extra: $*"
 echo "node    : $(hostname)   cpus: ${SLURM_CPUS_PER_TASK:-?}"
-nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null | sed 's/^/gpu     : /'
+GPU=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>&1)
+echo "gpu     : $GPU"
+# Without a GPU, Ollama falls back to the CPU and every job wastes ~25 minutes
+# failing to load the model. Stop at once instead; the queue moves on.
+if ! grep -q "MiB" <<<"$GPU"; then
+  echo "NO GPU VISIBLE on $(hostname): stopping. Check with: srun --gres=gpu:1 nvidia-smi"
+  exit 3
+fi
 
 # Environments and checkouts on the node's local disk (NFS stalls on pip).
 LOCAL_DISK="${TMPDIR:-/tmp}"
