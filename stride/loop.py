@@ -30,6 +30,23 @@ from stride.scoped import carry_forward, scoped_search, seed_for
 from stride.repair import RepairResult, git, repair_round
 
 
+SCRATCH_PATTERNS = (".aura_*", "*.aura_dryrun*", "*.stride_env_*", "stride-work-*",
+                    ".stride*", "__pycache__/")
+
+
+def cap_as_of(run: "Run", names) -> dict[str, str]:
+    """Pip constraints capping ``names`` at the measurement date, so a free
+    resolve can only pick releases out by then. Returns the caps."""
+    caps = {n: v for n in names if (v := run.latest(n))}
+    path = run.out / "as_of_constraints.txt"
+    spec = run.spec()
+    existing = Path(spec.build_constraints).read_text() if spec.build_constraints else ""
+    path.write_text(existing + "".join(f"{k}<={v}\n" for k, v in sorted(caps.items())))
+    run.constraints = str(path)
+    run.summary["as_of_caps"] = caps
+    return caps
+
+
 class Run:
     """Shared state for one subject and one arm."""
 
@@ -61,6 +78,12 @@ class Run:
         shutil.copy(requirements, self.workspace / self.subject.requirements_file)
         git(self.workspace, "config", "user.email", "stride@localhost")
         git(self.workspace, "config", "user.name", "STRIDE")
+        # AURA's scratch (probe copies, dry runs, env requirement files) lands in
+        # the workspace; keep it out of STRIDE's commits so patches count only edits.
+        exclude = self.workspace / ".git" / "info" / "exclude"
+        exclude.parent.mkdir(parents=True, exist_ok=True)
+        with exclude.open("a") as fh:
+            fh.write("\n".join(SCRATCH_PATTERNS) + "\n")
         git(self.workspace, "add", self.subject.requirements_file)
         git(self.workspace, "commit", "-qm", "STRIDE: start from AURA's final state",
             "--allow-empty")
@@ -205,8 +228,14 @@ def run_pin_latest(run: Run, *, aura_arm: str = "aura_full_qwen14b", first: str 
         barriers.sort(key=lambda x: x.package != first.lower())
     b = barriers[0]
     pins = {name: (run.latest(name) or version) for name, version in b.plan.items()}
+    # DepBench-style: the target goes to latest and every other package may
+    # follow it (pip resolves, capped at the measurement date). Holding the
+    # rest at their pins makes most targets uninstallable before any repair.
+    others = [n for n in start if n.lower() not in {k.lower() for k in pins}]
+    cap_as_of(run, others)
     label = f"{b.package} {b.current} -> {pins.get(b.package)} (latest)"
-    outcome = run.repair(label, pins, list(pins), baseline, tag=f"latest_{b.package}")
+    outcome = run.repair(label, pins, list(pins), baseline, tag=f"latest_{b.package}",
+                         unpin=others)
     run.summary["rounds"].append({"round": 1, "attempts": [asdict(outcome)]})
     return run.finish(start)
 
@@ -221,14 +250,7 @@ def run_all_latest(run: Run, *, aura_arm: str = "aura_full_qwen14b") -> dict:
     run.prepare(reqs)
     start = run.pins()
     baseline = baseline_from_log(read_log(log))
-    caps = {name: run.latest(name) for name in start}
-    caps = {k: v for k, v in caps.items() if v}
-    constraints = run.out / "as_of_constraints.txt"
-    spec = run.spec()
-    existing = Path(spec.build_constraints).read_text() if spec.build_constraints else ""
-    constraints.write_text(existing + "".join(f"{k}<={v}\n" for k, v in sorted(caps.items())))
-    run.constraints = str(constraints)
-    run.summary["as_of_caps"] = caps
+    cap_as_of(run, start)
     outcome = run.repair("all packages unpinned (pip resolves)", {}, list(start), baseline,
                          tag="all_latest", unpin=list(start))
     run.summary["rounds"].append({"round": 1, "attempts": [asdict(outcome)]})
