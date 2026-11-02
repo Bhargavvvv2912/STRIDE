@@ -308,3 +308,26 @@ def test_guarded_agent_blocks_repeats_and_undoes_broken_edits(tmp_path):
     assert agent.blocked == 1 and any("already ran exactly this command" in t for t in texts)
     assert agent.reverted == 1 and any("was undone" in t for t in texts)
     assert (tmp_path / "m.py").read_text() == "def f():\n    return 1\n"
+
+
+def test_triage_counts_missing_attribute_on_a_project_call_as_code():
+    """timm 0.6 dropped VisionTransformer.dist_token: torch's __getattr__
+    raises, but the project asked for the attribute, so this is code."""
+    from stride.triage import classify
+    out = """___________________________ test_cvit_cub ___________________________
+tests/test_ctc.py:14: in test_cvit_cub
+    ct(x)
+ctc/vit.py:84: in forward
+    if self.feature_extractor.dist_token is None:
+/tmp/v/lib/python3.9/site-packages/torch/nn/modules/module.py:1614: in __getattr__
+    raise AttributeError(
+E   AttributeError: 'VisionTransformer' object has no attribute 'dist_token'
+"""
+    t = classify(out, ["tests"], stepped={"timm"})
+    assert t.kind == "code" and t.raised_in["test_cvit_cub"] == "ctc/vit.py"
+
+
+def test_agent_label_names_the_model():
+    from stride.coders import MiniSweAgent
+    assert MiniSweAgent(model="ollama_chat/qwen2.5-coder:32b").label == \
+        "mini-swe-agent__qwen2.5-coder-32b"

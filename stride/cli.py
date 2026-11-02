@@ -44,7 +44,7 @@ def cmd_run(args) -> None:
                          wall_time_s=args.agent_minutes * 60)
     run = Run(subject, args.arm, Path(args.out), Path(args.work), Path(args.aura_dir),
               agent, repo_cache=Path(args.repo_cache) if args.repo_cache else None,
-              pip_cache=args.pip_cache)
+              pip_cache=args.pip_cache, use_triage=not args.no_triage)
     kwargs = {"aura_arm": args.aura_arm}
     if args.arm == "pin_latest":
         kwargs["first"] = args.first
@@ -85,6 +85,9 @@ def main(argv=None) -> None:
     r.add_argument("--model", default="ollama_chat/qwen2.5-coder:14b")
     r.add_argument("--step-limit", type=int, default=60)
     r.add_argument("--agent-minutes", type=int, default=60)
+    r.add_argument("--no-triage", action="store_true",
+                   help="skip dependency triage: every failing step goes to the agent "
+                        "(the DepBench-style baseline)")
     r.add_argument("--rounds", type=int, default=4)
     r.add_argument("--barriers-per-round", type=int, default=3)
     r.add_argument("--step", default="smallest", choices=["smallest", "aura_plan"],

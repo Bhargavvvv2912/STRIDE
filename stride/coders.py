@@ -28,6 +28,13 @@ class AgentRun:
 class CodeAgent:
     name = "base"
 
+    @property
+    def label(self) -> str:
+        """Folder name for this agent's runs: agent and model."""
+        model = getattr(self, "model", "")
+        short = model.split("/")[-1].replace(":", "-") if model else ""
+        return f"{self.name}__{short}" if short else self.name
+
     def run(self, task: str, workdir: Path, env: dict[str, str], out_dir: Path) -> AgentRun:
         raise NotImplementedError
 

@@ -151,7 +151,7 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
                  pins: dict[str, str], moved: list[str], config: dict, spec: EnvSpec,
                  unpin: list[str] | None = None, index=None, python_version: str = "",
                  baseline: dict, agent: CodeAgent, out_dir: Path,
-                 tolerance: float = 0.01) -> RepairResult:
+                 tolerance: float = 0.01, use_triage: bool = True) -> RepairResult:
     started = time.time()
     out_dir.mkdir(parents=True, exist_ok=True)
     result = RepairResult(label=label, pins=dict(pins))
@@ -207,7 +207,7 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
 
     # Triage: does the failure touch the project's code at all?
     traced = before.output
-    if validator.kind == "pytest":
+    if validator.kind == "pytest" and use_triage:
         traced = triage.run_with_tracebacks(env.python, targets, validator.cwd)
         (out_dir / "tests_before_tb.txt").write_text(traced[-30000:])
         test_dirs = [str(Path(t).parent) if t.endswith(".py") else t for t in targets]
@@ -359,8 +359,11 @@ def _try_transitive_pins(env, implicated: list[str], target: ReqFile, validator:
         seen.add(dist)
         current = frozen[dist]
         held = [f"{k}=={v}" for k, v in hold.items() if k != dist]
-        for version in triage.candidate_pins(index, dist, current, python_version,
-                                             as_of=MEASURED_AS_OF):
+        candidates = triage.candidate_pins(index, dist, current, python_version,
+                                           as_of=MEASURED_AS_OF)
+        if dist in hold:   # a declared package only moves forward: this is an upgrade
+            candidates = [v for v in candidates if _newer(v, current)]
+        for version in candidates:
             moved = _install_moving(env, dist, version, held, hold, stepped, log)
             if moved is None:
                 continue
@@ -407,7 +410,18 @@ def _install_moving(env, dist, version, held, hold, stepped, log):
     moved = {dist: version}
     moved.update({k: now[k] for k, v in hold.items() if k in now and now[k] != v})
     entry["moved"] = moved
+    backward = [k for k, v in moved.items() if k in hold and not _newer(v, hold[k])
+                and k != dist]
+    if backward:   # pip downgraded a declared package to make room: not an upgrade
+        entry.update({"install": False, "error": f"would downgrade {backward}"})
+        return None
     return moved
+
+
+def _newer(a: str, b: str) -> bool:
+    from aura.reqfile import safe_parse_version
+    pa, pb = safe_parse_version(a), safe_parse_version(b)
+    return pa is not None and pb is not None and pa > pb
 
 
 def _within_major(name: str, version: str) -> str:

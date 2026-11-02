@@ -35,15 +35,18 @@ class Run:
 
     def __init__(self, subject: Subject, arm: str, out_root: Path, work_root: Path,
                  aura_dir: Path, agent: CodeAgent, repo_cache: Path | None = None,
-                 pip_cache: str | None = None):
+                 pip_cache: str | None = None, use_triage: bool = True):
         self.subject, self.arm, self.agent = subject, arm, agent
-        self.out = out_root / subject.name / f"{arm}__{agent.name}"
+        self.use_triage = use_triage
+        tag = f"{arm}__{agent.label}" + ("" if use_triage else "__notriage")
+        self.out = out_root / subject.name / tag
         self.out.mkdir(parents=True, exist_ok=True)
-        self.workspace = work_root / subject.name / f"{arm}__{agent.name}"
+        self.workspace = work_root / subject.name / tag
         self.aura_dir = aura_dir / subject.name
         self.repo_cache, self.pip_cache = repo_cache, pip_cache
         self.index = PackageIndex()
         self.summary: dict = {"subject": subject.name, "arm": arm, "agent": agent.name,
+                              "model": getattr(agent, "model", ""), "triage": use_triage,
                               "rounds": [], "started": time.strftime("%Y-%m-%d %H:%M:%S")}
 
     # ---------------------------------------------------------------- inputs
@@ -82,7 +85,8 @@ class Run:
             requirements_file=self.subject.requirements_file, pins=pins, moved=moved,
             config=self.config(), spec=self.spec(), baseline=baseline, agent=self.agent,
             unpin=unpin, index=self.index, python_version=self.subject.python_version,
-            out_dir=self.out / tag, tolerance=self.subject.metric_tolerance)
+            out_dir=self.out / tag, tolerance=self.subject.metric_tolerance,
+            use_triage=self.use_triage)
 
     def finish(self, start_pins: dict[str, str]) -> dict:
         end = self.pins()

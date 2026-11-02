@@ -18,6 +18,7 @@ from aura.reqfile import safe_parse_version
 
 FRAME = re.compile(r"^(?P<path>[^\s:][^:\n]*\.py):\d+: in ", re.MULTILINE)
 MISSING_ATTR = re.compile(r"module '([A-Za-z0-9_\.]+)' has no attribute")
+OBJECT_ATTR = re.compile(r"AttributeError: '\w+' object has no attribute")
 CANNOT_IMPORT = re.compile(r"cannot import name '\w+' from '([A-Za-z0-9_\.]+)'")
 SKIP_DISTS = {"pytest", "pluggy", "_pytest", "py", "iniconfig", "setuptools", "pip"}
 
@@ -99,7 +100,14 @@ def classify(output: str, test_dirs: list[str], only: list[str] | None = None,
         inner = [f for f in frames if _where(f, test_dirs) in ("project", "package")]
         if inner:
             raised_in[name] = inner[-1]
-            if _where(inner[-1], test_dirs) == "package":
+            # Project code asked an object for an attribute it no longer has
+            # (timm 0.6 dropped VisionTransformer.dist_token; torch's generic
+            # __getattr__ raises). The caller is the project: that is code.
+            if (len(inner) > 1 and _where(inner[-1], test_dirs) == "package"
+                    and _where(inner[-2], test_dirs) == "project"
+                    and OBJECT_ATTR.search(body)):
+                raised_in[name] = inner[-2]
+            elif _where(inner[-1], test_dirs) == "package":
                 implicated.append(_top(inner[-1]))
         named = []
         for pattern in (MISSING_ATTR, CANNOT_IMPORT):

@@ -6,6 +6,13 @@
 #   sbatch scripts/slurm/stride.sbatch concept-transformer pin_latest
 #
 # Everything after the arm is passed to `python -m stride.cli run`.
+# The code agent's model comes from STRIDE_MODEL (default qwen2.5-coder:14b):
+#
+#   STRIDE_MODEL=qwen2.5-coder:32b sbatch scripts/slurm/stride.sbatch concept-transformer stride
+#   STRIDE_MODEL=qwen2.5:72b       sbatch scripts/slurm/stride.sbatch concept-transformer stride
+#
+# AURA's own version-search LLM stays at qwen14b (AURA_MODELS) in every run,
+# so only the code agent differs between them.
 # Reuses AURA's cluster layout (scripts/slurm/cluster_env.sh): uv Pythons,
 # Ollama and its models under $AURA_SCRATCH.
 #
@@ -61,6 +68,10 @@ curl -s "http://$OLLAMA_HOST/api/tags" >/dev/null || { echo "ollama did not star
 # first load can take minutes; Ollama's default 5-minute load timeout then
 # fails the agent's first call, which STRIDE would count as a failed repair.
 STRIDE_MODEL="${STRIDE_MODEL:-qwen2.5-coder:14b}"
+if ! "$OLLAMA_BIN" list 2>/dev/null | awk '{print $1}' | grep -qx "$STRIDE_MODEL"; then
+  echo "pulling $STRIDE_MODEL into $OLLAMA_MODELS ..."
+  "$OLLAMA_BIN" pull "$STRIDE_MODEL" || { echo "could not pull $STRIDE_MODEL"; exit 1; }
+fi
 echo "loading $STRIDE_MODEL (context $OLLAMA_CONTEXT_LENGTH) ..."
 curl -s --max-time 1500 "http://$OLLAMA_HOST/api/generate" \
   -d "{\"model\": \"$STRIDE_MODEL\", \"prompt\": \"ok\", \"stream\": false, \"keep_alive\": \"24h\"}" \
@@ -70,4 +81,4 @@ echo "model loaded"
 export AURA_MODELS="${AURA_MODELS:-qwen14b}"
 export MSWEA_COST_TRACKING=ignore_errors
 ./.devenv/bin/python -m stride.cli run "$SUBJECT" --arm "$ARM" \
-  --work "$STRIDE_WORK" --repo-cache "$REPO_CACHE" --pip-cache "$PIP_CACHE" "$@"
+  --model "ollama_chat/$STRIDE_MODEL" --work "$STRIDE_WORK" --repo-cache "$REPO_CACHE" --pip-cache "$PIP_CACHE" "$@"
