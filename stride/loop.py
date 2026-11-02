@@ -65,9 +65,14 @@ class Run:
         git(self.workspace, "commit", "-qm", "STRIDE: start from AURA's final state",
             "--allow-empty")
 
+    constraints: str | None = None     # extra pip constraints (all_latest's date caps)
+
     def spec(self):
-        return _env_spec(self.subject, SimpleNamespace(installer="pip"), self.workspace,
+        spec = _env_spec(self.subject, SimpleNamespace(installer="pip"), self.workspace,
                          self.index, self.pip_cache)
+        if self.constraints:
+            spec.build_constraints = self.constraints
+        return spec
 
     def config(self) -> dict:
         return self.subject.agent_config(self.workspace)
@@ -207,14 +212,25 @@ def run_pin_latest(run: Run, *, aura_arm: str = "aura_full_qwen14b", first: str 
 
 
 def run_all_latest(run: Run, *, aura_arm: str = "aura_full_qwen14b") -> dict:
-    """Every package at latest at once, then one repair."""
+    """RepoRescue's setting: drop every pin and let pip pick the newest set that
+    installs together (RepoRescue: "a fresh virtual environment with no version
+    pins"), then one repair. Pip may only pick releases out by the measurement
+    date, the same date every arm is scored against. The project keeps its
+    Python version (RepoRescue also moved Python to 3.13)."""
     log, _, reqs = run.aura_files(aura_arm)
     run.prepare(reqs)
     start = run.pins()
     baseline = baseline_from_log(read_log(log))
-    pins = {name: (run.latest(name) or version) for name, version in start.items()}
-    outcome = run.repair("all packages -> latest", pins, list(pins), baseline,
-                         tag="all_latest")
+    caps = {name: run.latest(name) for name in start}
+    caps = {k: v for k, v in caps.items() if v}
+    constraints = run.out / "as_of_constraints.txt"
+    spec = run.spec()
+    existing = Path(spec.build_constraints).read_text() if spec.build_constraints else ""
+    constraints.write_text(existing + "".join(f"{k}<={v}\n" for k, v in sorted(caps.items())))
+    run.constraints = str(constraints)
+    run.summary["as_of_caps"] = caps
+    outcome = run.repair("all packages unpinned (pip resolves)", {}, list(start), baseline,
+                         tag="all_latest", unpin=list(start))
     run.summary["rounds"].append({"round": 1, "attempts": [asdict(outcome)]})
     return run.finish(start)
 

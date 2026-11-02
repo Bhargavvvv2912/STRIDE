@@ -19,6 +19,6 @@ export OLLAMA_BIN="$AURA_SCRATCH/ollama/bin/ollama"
 export PIP_CACHE="$AURA_SCRATCH/wheels"
 export WORKSPACES="$AURA_SCRATCH/workspaces"
 export REPO_CACHE="$AURA_SCRATCH/repo_cache"
-export PATH="$AURA_SCRATCH/ollama/bin:$HOME/.local/bin:$PATH"
+export PATH="$AURA_SCRATCH/agents/bin:$AURA_SCRATCH/node/bin:$AURA_SCRATCH/ollama/bin:$HOME/.local/bin:$PATH"
 
 mkdir -p "$UV_PYTHON_INSTALL_DIR" "$OLLAMA_MODELS" "$PIP_CACHE" "$WORKSPACES" "$REPO_CACHE"

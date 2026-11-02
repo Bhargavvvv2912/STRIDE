@@ -225,7 +225,175 @@ class MiniSweAgent(CodeAgent):
         return run
 
 
-AGENTS = {"mini-swe-agent": MiniSweAgent}
+# ------------------------------------------------------------------ CLI agents
+
+def _ollama_model(model: str) -> str:
+    """'ollama_chat/qwen3-coder:30b' -> 'qwen3-coder:30b'."""
+    return model.split("/", 1)[1] if "/" in model else model
+
+
+def _count_events(lines: list[str]) -> tuple[int, int, int]:
+    """(tool calls, prompt tokens, completion tokens) from a JSONL event stream.
+    Event shapes differ per tool and version, so this reads them loosely."""
+    import json
+    steps = prompt = completion = 0
+
+    def walk(obj):
+        nonlocal prompt, completion
+        if isinstance(obj, dict):
+            for key in ("usage", "tokens"):
+                u = obj.get(key)
+                if isinstance(u, dict):
+                    prompt += int(u.get("input_tokens") or u.get("input") or
+                                  u.get("prompt_tokens") or 0)
+                    completion += int(u.get("output_tokens") or u.get("output") or
+                                      u.get("completion_tokens") or 0)
+            for v in obj.values():
+                if isinstance(v, (dict, list)):
+                    walk(v)
+        elif isinstance(obj, list):
+            for v in obj:
+                walk(v)
+
+    for line in lines:
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        kind = str(event.get("type", ""))
+        item = event.get("item") or event.get("part") or {}
+        item_kind = str(item.get("type", "")) if isinstance(item, dict) else ""
+        if (kind in ("item.completed", "tool_use") and
+                (item_kind in ("command_execution", "file_change", "mcp_tool_call", "tool")
+                 or kind == "tool_use")):
+            steps += 1
+        if kind in ("turn.completed", "step_finish"):
+            walk(event)
+    return steps, prompt, completion
+
+
+class CliAgent(CodeAgent):
+    """A coding agent run as its own program (Codex CLI, OpenCode), headless,
+    against the job's Ollama server. Same task text and rules as mini-SWE-agent;
+    the guard around it (locked tests, no pip, checks after) is the same too.
+    These tools have no step limit, so the budget is wall-clock time."""
+
+    binary_env = ""
+    binary_name = ""
+
+    def __init__(self, model: str = "ollama_chat/qwen3-coder:30b", step_limit: int = 60,
+                 wall_time_s: int = 3600, num_ctx: int = 65536, **_):
+        self.model = model
+        self.step_limit = step_limit          # recorded only; see class docstring
+        self.wall_time_s = wall_time_s
+        self.num_ctx = num_ctx
+
+    def binary(self) -> str:
+        import shutil
+        found = os.environ.get(self.binary_env) or shutil.which(self.binary_name)
+        if not found:
+            raise FileNotFoundError(f"{self.binary_name} not found: put it on PATH or set "
+                                    f"{self.binary_env}")
+        return found
+
+    def command(self, task: str, workdir: Path, out_dir: Path) -> tuple[list[str], dict]:
+        raise NotImplementedError
+
+    def run(self, task: str, workdir: Path, env: dict[str, str], out_dir: Path) -> AgentRun:
+        import signal
+        out_dir.mkdir(parents=True, exist_ok=True)
+        trajectory = out_dir / "trajectory.jsonl"
+        run = AgentRun(trajectory=str(trajectory))
+        prompt = task + "\n" + SYSTEM_EXTRA
+        try:
+            cmd, extra_env = self.command(prompt, workdir, out_dir)
+        except Exception as exc:
+            run.exit_status, run.error = "crashed", f"{type(exc).__name__}: {exc}"
+            return run
+        full_env = {**os.environ, **env, **extra_env}
+        started = time.time()
+        with open(trajectory, "w") as out, open(out_dir / "agent_stderr.txt", "w") as err:
+            proc = subprocess.Popen(cmd, cwd=workdir, env=full_env, stdout=out, stderr=err,
+                                    stdin=subprocess.DEVNULL, start_new_session=True)
+            try:
+                code = proc.wait(timeout=self.wall_time_s)
+                run.exit_status = "Submitted" if code == 0 else f"exit_{code}"
+            except subprocess.TimeoutExpired:
+                os.killpg(proc.pid, signal.SIGKILL)
+                proc.wait()
+                run.exit_status = "TimeExceeded"
+        run.seconds = round(time.time() - started, 1)
+        lines = trajectory.read_text(errors="replace").splitlines()
+        run.steps, run.prompt_tokens, run.completion_tokens = _count_events(lines)
+        if run.exit_status.startswith("exit_"):
+            run.error = (out_dir / "agent_stderr.txt").read_text(errors="replace")[-1500:]
+        return run
+
+
+class CodexCli(CliAgent):
+    """OpenAI Codex CLI (``codex exec``) on a local model through Ollama."""
+
+    name = "codex"
+    binary_env, binary_name = "STRIDE_CODEX_BIN", "codex"
+
+    def command(self, task, workdir, out_dir):
+        home = out_dir / "codex_home"
+        home.mkdir(parents=True, exist_ok=True)
+        provider = {
+            "model_provider": '"stride"',
+            "model_providers.stride.name": '"ollama"',
+            "model_providers.stride.base_url": f'"{ollama_base()}/v1"',
+            "model_providers.stride.wire_api": '"responses"',
+            "shell_environment_policy.inherit": '"all"',
+            "model_context_window": str(self.num_ctx),
+        }
+        cmd = [self.binary(), "exec", "--ignore-user-config", "--ignore-rules",
+               "--skip-git-repo-check", "--ephemeral", "--json", "--color", "never",
+               # The guard around the agent does the sandboxing (read-only tests,
+               # pip blocked, checks afterwards), as for every agent.
+               "--dangerously-bypass-approvals-and-sandbox",
+               "-C", str(workdir), "-m", _ollama_model(self.model),
+               "-o", str(out_dir / "last_message.txt")]
+        for key, value in provider.items():
+            cmd += ["-c", f"{key}={value}"]
+        cmd.append(task)
+        return cmd, {"CODEX_HOME": str(home), "NO_COLOR": "1"}
+
+
+class OpenCode(CliAgent):
+    """OpenCode (``opencode run``) on a local model through Ollama."""
+
+    name = "opencode"
+    binary_env, binary_name = "STRIDE_OPENCODE_BIN", "opencode"
+
+    def command(self, task, workdir, out_dir):
+        import json
+        home = out_dir / "opencode_home"
+        for sub in ("config", "data", "state"):
+            (home / sub).mkdir(parents=True, exist_ok=True)
+        model = _ollama_model(self.model)
+        config = {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {"ollama": {
+                "npm": "@ai-sdk/openai-compatible", "name": "Ollama",
+                "options": {"baseURL": f"{ollama_base()}/v1"},
+                "models": {model: {"name": model, "tools": True,
+                                   "limit": {"context": self.num_ctx, "output": 8192}}}}},
+            "permission": {"edit": "allow", "bash": "allow", "webfetch": "deny"},
+            "share": "disabled", "autoupdate": False,
+        }
+        path = home / "opencode.json"
+        path.write_text(json.dumps(config, indent=2))
+        cmd = [self.binary(), "run", "--model", f"ollama/{model}", "--format", "json",
+               "--auto", "--pure", "--dir", str(workdir), task]
+        return cmd, {"OPENCODE_CONFIG": str(path),
+                     "XDG_CONFIG_HOME": str(home / "config"),
+                     "XDG_DATA_HOME": str(home / "data"),
+                     "XDG_STATE_HOME": str(home / "state"),
+                     "OPENCODE_DISABLE_AUTOUPDATE": "1"}
+
+
+AGENTS = {"mini-swe-agent": MiniSweAgent, "codex": CodexCli, "opencode": OpenCode}
 
 
 def build(name: str, **kwargs) -> CodeAgent:

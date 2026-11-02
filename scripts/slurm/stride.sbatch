@@ -9,7 +9,10 @@
 # The code agent's model comes from STRIDE_MODEL (default qwen2.5-coder:14b):
 #
 #   STRIDE_MODEL=qwen2.5-coder:32b sbatch scripts/slurm/stride.sbatch concept-transformer stride
-#   STRIDE_MODEL=qwen2.5:72b       sbatch scripts/slurm/stride.sbatch concept-transformer stride
+#   STRIDE_MODEL=qwen3-coder:30b sbatch scripts/slurm/stride.sbatch concept-transformer stride --agent codex
+#
+# Agents: mini-swe-agent (default), codex, opencode (install the last two with
+# scripts/install_agents.sh).
 #
 # AURA's own version-search LLM stays at qwen14b (AURA_MODELS) in every run,
 # so only the code agent differs between them.
@@ -67,7 +70,7 @@ curl -s "http://$OLLAMA_HOST/api/tags" >/dev/null || { echo "ollama did not star
 # Load the model before STRIDE starts. On a GPU shared with other jobs the
 # first load can take minutes; Ollama's default 5-minute load timeout then
 # fails the agent's first call, which STRIDE would count as a failed repair.
-STRIDE_MODEL="${STRIDE_MODEL:-qwen2.5-coder:14b}"
+STRIDE_MODEL="${STRIDE_MODEL:-qwen3-coder:30b}"
 if ! "$OLLAMA_BIN" list 2>/dev/null | awk '{print $1}' | grep -qx "$STRIDE_MODEL"; then
   echo "pulling $STRIDE_MODEL into $OLLAMA_MODELS ..."
   "$OLLAMA_BIN" pull "$STRIDE_MODEL" || { echo "could not pull $STRIDE_MODEL"; exit 1; }

@@ -81,8 +81,9 @@ def main(argv=None) -> None:
     r = sub.add_parser("run", help="run one arm on one subject")
     r.add_argument("subject")
     r.add_argument("--arm", default="stride", choices=["stride", "pin_latest", "all_latest"])
-    r.add_argument("--agent", default="mini-swe-agent")
-    r.add_argument("--model", default="ollama_chat/qwen2.5-coder:14b")
+    r.add_argument("--agent", default="mini-swe-agent",
+                   choices=["mini-swe-agent", "codex", "opencode"])
+    r.add_argument("--model", default="ollama_chat/qwen3-coder:30b")
     r.add_argument("--step-limit", type=int, default=60)
     r.add_argument("--agent-minutes", type=int, default=60)
     r.add_argument("--no-triage", action="store_true",
