@@ -48,8 +48,8 @@ for SUBJECT in "$@"; do
                    scripts/slurm/stride.sbatch "$SUBJECT" "$ARM" "${EXTRA[@]}" 2>&1); then
             break
           fi
-          if grep -q "SubmitJobsLimit\|job submit limit" <<<"$OUT"; then
-            echo "$(date +%H:%M) queue full; retrying in ${RETRY_S:-600}s ($SUBJECT $MODEL $AGENT $ARM)"
+          if grep -q "SubmitJobsLimit\|job submit limit\|Unable to contact slurm controller\|Socket timed out\|temporarily unavailable" <<<"$OUT"; then
+            echo "$(date +%H:%M) queue full or controller down; retrying in ${RETRY_S:-600}s ($SUBJECT $MODEL $AGENT $ARM)"
             sleep "${RETRY_S:-600}"
             # The job we depended on may have finished and left the queue.
             if [ -n "$PREV" ] && [ -z "$(squeue -h -j "$PREV" 2>/dev/null)" ]; then DEP=(); fi
