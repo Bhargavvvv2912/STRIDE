@@ -147,6 +147,27 @@ def call_sites(root: Path, packages: list[str]) -> list[str]:
     return sorted(set(hits))
 
 
+def unpinned(reqfile: ReqFile, names) -> ReqFile:
+    """A copy with these packages' version specifiers removed, names kept, so
+    the installer still installs them and picks the versions. (AURA's
+    ``without_pins`` deletes the lines, which installs nothing for them.)"""
+    from packaging.requirements import Requirement
+    from packaging.utils import canonicalize_name
+    drop = {canonicalize_name(n) for n in names}
+    out = ReqFile.from_text(reqfile.to_text())
+    for line in out.requirements():
+        req = line.requirement
+        if req is None or canonicalize_name(req.name) not in drop:
+            continue
+        extras = f"[{','.join(sorted(req.extras))}]" if req.extras else ""
+        marker = f" ; {req.marker}" if req.marker else ""
+        indent = line.raw[: len(line.raw) - len(line.raw.lstrip())]
+        line._override = f"{indent}{req.name}{extras}{marker}{line.inline_comment}"
+        line.requirement = Requirement(
+            f"{req.name}{extras}" + (f"; {req.marker}" if req.marker else ""))
+    return ReqFile.from_text(out.to_text())
+
+
 def repair_round(*, label: str, project: str, workspace: Path, requirements_file: str,
                  pins: dict[str, str], moved: list[str], config: dict, spec: EnvSpec,
                  unpin: list[str] | None = None, index=None, python_version: str = "",
@@ -163,7 +184,7 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
     target = reqfile.with_pins(pins).with_added_pins(
         {k: v for k, v in pins.items() if k.lower() not in present})
     if unpin:
-        target = target.without_pins([u for u in unpin if u.lower() in present])
+        target = unpinned(target, [u for u in unpin if u.lower() in present])
     target.save(req_path)
     git(workspace, "add", requirements_file)
     git(workspace, "commit", "-qm", f"STRIDE: pin {label}", "--allow-empty")

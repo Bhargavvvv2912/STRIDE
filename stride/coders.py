@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shutil
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -323,6 +324,10 @@ class CliAgent(CodeAgent):
                 proc.wait()
                 run.exit_status = "TimeExceeded"
         run.seconds = round(time.time() - started, 1)
+        # The agent's private home holds thousands of plugin and cache files;
+        # its transcript is already in trajectory.jsonl, so drop the rest.
+        for home in ("codex_home", "opencode_home"):
+            shutil.rmtree(out_dir / home, ignore_errors=True)
         lines = trajectory.read_text(errors="replace").splitlines()
         run.steps, run.prompt_tokens, run.completion_tokens = _count_events(lines)
         if run.exit_status.startswith("exit_"):

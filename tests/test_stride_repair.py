@@ -331,3 +331,14 @@ def test_agent_label_names_the_model():
     from stride.coders import MiniSweAgent
     assert MiniSweAgent(model="ollama_chat/qwen2.5-coder:32b").label == \
         "mini-swe-agent__qwen2.5-coder-32b"
+
+
+def test_unpinned_keeps_package_names():
+    from aura.reqfile import ReqFile
+    from stride.repair import unpinned
+    req = ReqFile.from_text("torch==1.11.0\npandas==2.3.3  # data\ntimm[extra]==0.5.4\n")
+    out = unpinned(req, ["torch", "timm"]).to_text()
+    assert "torch\n" in out and "torch==" not in out
+    assert "timm[extra]" in out and "0.5.4" not in out
+    assert "pandas==2.3.3" in out
+    assert unpinned(req, ["torch"]).names() == req.names()
