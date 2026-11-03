@@ -46,6 +46,11 @@ class RepairResult:
     pins: dict[str, str] = field(default_factory=dict)
     triage: dict = field(default_factory=dict)
     transitive_pins: dict[str, str] = field(default_factory=dict)
+    lost_symbols: list[str] = field(default_factory=list)    # code the patch removed
+    added_symbols: list[str] = field(default_factory=list)   # new top-level code
+    fixed_baseline: list[str] = field(default_factory=list)  # failed before any upgrade, pass now
+    scope_creep: bool = False      # added code and made already-failing tests pass
+    dropped: list[str] = field(default_factory=list)         # packages removed to cross
 
 
 def git(root: Path, *args: str, check: bool = False) -> str:
@@ -96,14 +101,33 @@ def build_environment(path: Path, spec: EnvSpec, reqfile: ReqFile, workdir: Path
 
 
 def task_prompt(*, project: str, jump: str, test_command: str, failing: list[str],
-                output_tail: str, call_sites: list[str]) -> str:
+                output_tail: str, call_sites: list[str], known_failing: list[str] = (),
+                dropped: list[str] = ()) -> str:
     sites = "\n".join(f"  - {s}" for s in call_sites[:40]) or "  (none found)"
     fails = "\n".join(f"  - {t}" for t in failing[:40]) or "  (the suite does not run)"
+    removed = ""
+    if dropped:
+        names = ", ".join(f"`{d}`" for d in dropped)
+        removed = f"""
+{names} has been uninstalled: it does not support the new versions, so the
+upgrade is only possible without it. Replace the project's uses of it with
+equivalent code (for example, re-implement the one function the project uses,
+with the same behaviour and defaults). Do not change what the project does.
+"""
+    out_of_scope = ""
+    if known_failing:
+        listed = "\n".join(f"  - {t}" for t in known_failing[:20])
+        out_of_scope = f"""
+These tests already failed before the upgrade and are NOT part of this task.
+Do not add code just to make them pass:
+{listed}
+"""
     return f"""The project `{project}` is being upgraded: {jump}.
 The new versions are already installed. The project's tests now fail because the
 project's code uses APIs that changed. Update the project's source code so that
 these tests pass again with the installed versions, keeping the project's behaviour.
-
+Do not delete or disable existing functions, classes or methods.
+{removed}{out_of_scope}
 Run the tests with:
     {test_command}
 
@@ -172,7 +196,8 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
                  pins: dict[str, str], moved: list[str], config: dict, spec: EnvSpec,
                  unpin: list[str] | None = None, index=None, python_version: str = "",
                  baseline: dict, agent: CodeAgent, out_dir: Path,
-                 tolerance: float = 0.01, use_triage: bool = True) -> RepairResult:
+                 tolerance: float = 0.01, use_triage: bool = True,
+                 drop: list[str] | None = None) -> RepairResult:
     started = time.time()
     out_dir.mkdir(parents=True, exist_ok=True)
     result = RepairResult(label=label, pins=dict(pins))
@@ -185,6 +210,9 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
         {k: v for k, v in pins.items() if k.lower() not in present})
     if unpin:
         target = unpinned(target, [u for u in unpin if u.lower() in present])
+    if drop:   # an install barrier: the blocking package goes, its uses get replaced
+        target = target.without_pins([d for d in drop if d.lower() in present])
+        result.dropped = sorted(d for d in drop if d.lower() in present)
     target.save(req_path)
     git(workspace, "add", requirements_file)
     git(workspace, "commit", "-qm", f"STRIDE: pin {label}", "--allow-empty")
@@ -266,11 +294,14 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
 
     shims = guard.pip_blocker(workspace.parent / f".stride_shims_{workspace.name}")
     agent_env = guard.agent_environment(str(Path(env.python).parent), shims)
+    known_failing = sorted(baseline.get("failing") or [])
     task = task_prompt(project=project, jump=label, test_command=test_command,
                        failing=sorted(new or before.failing), output_tail=traced,
-                       call_sites=call_sites(workspace, moved))
+                       call_sites=call_sites(workspace, list(moved) + list(drop or [])),
+                       known_failing=known_failing, dropped=result.dropped)
     (out_dir / "task.md").write_text(task)
 
+    shape_before = guard.code_shape(workspace, protected_rel)
     with guard.Lock(workspace, protected) as lock:
         run: AgentRun = agent.run(task, workspace, agent_env, out_dir)
         tampered = lock.tampered()
@@ -290,6 +321,11 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
     result.failing_after = sorted(after.failing)
     ok, new_failures, drifted, _ = validator.judge(after)
     result.new_failures = new_failures + drifted
+    shape_after = guard.code_shape(workspace, protected_rel)
+    result.lost_symbols = guard.lost_symbols(shape_before, shape_after)
+    result.added_symbols = guard.added_symbols(shape_before, shape_after)
+    result.fixed_baseline = sorted(set(known_failing) - set(after.failing))
+    result.scope_creep = bool(result.fixed_baseline and result.added_symbols)
 
     if run.exit_status == "crashed" and not result.files_changed:
         result.reason = "agent_error"          # infrastructure, not a failed repair
@@ -299,6 +335,8 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
         result.reason = "added_skips"
     elif result.packages_changed:
         result.reason = "changed_packages"
+    elif result.lost_symbols:
+        result.reason = "removed_code"         # tests pass, but code went missing
     elif not ok:
         result.reason = "tests_still_fail"
     else:

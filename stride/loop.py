@@ -107,14 +107,15 @@ class Run:
         return self.index.newest_at(name, MEASURED_AS_OF, self.subject.python_version)
 
     def repair(self, label: str, pins: dict[str, str], moved: list[str], baseline: dict,
-               tag: str, unpin: list[str] | None = None) -> RepairResult:
+               tag: str, unpin: list[str] | None = None,
+               drop: list[str] | None = None) -> RepairResult:
         return repair_round(
             label=label, project=self.subject.name, workspace=self.workspace,
             requirements_file=self.subject.requirements_file, pins=pins, moved=moved,
             config=self.config(), spec=self.spec(), baseline=baseline, agent=self.agent,
             unpin=unpin, index=self.index, python_version=self.subject.python_version,
             out_dir=self.out / tag, tolerance=self.subject.metric_tolerance,
-            use_triage=self.use_triage)
+            use_triage=self.use_triage, drop=drop)
 
     def finish(self, start_pins: dict[str, str]) -> dict:
         end = self.pins()
@@ -123,6 +124,10 @@ class Run:
         declared = {k.lower() for k in start_pins}
         scored = {k: v for k, v in end.items() if k.lower() in declared}
         self.summary["added_pins"] = {k: v for k, v in end.items() if k.lower() not in declared}
+        # Declared packages no longer installed (an install barrier crossed by
+        # replacing them). They leave the score; reported here instead.
+        self.summary["dropped"] = sorted(k for k in start_pins
+                                         if k.lower() not in {e.lower() for e in end})
         self.summary["age_start"] = version_age_report(self.index, start_pins)
         self.summary["age_end"] = version_age_report(self.index, scored)
         self.summary["pins_end"] = end
@@ -174,8 +179,13 @@ def run_stride(run: Run, *, max_rounds: int = 4, barriers_per_round: int = 3,
             else:                       # the exact plan AURA saw break
                 pins, unpin = dict(b.plan), []
             label = f"{b.package} {b.current} -> {pins[b.package]}"
+            drop = None
+            if b.kind == "install":     # cross by no longer using the blocking package
+                drop = [b.blocker]
+                unpin = [u for u in unpin if u != b.blocker]
+                label += f" (without {b.blocker})"
             outcome = run.repair(label, pins, list(b.plan), baseline,
-                                 tag=f"round{r}_{b.package}", unpin=unpin)
+                                 tag=f"round{r}_{b.package}", unpin=unpin, drop=drop)
             round_info.setdefault("attempts", []).append(asdict(outcome))
             if outcome.accepted:
                 crossed = b
@@ -220,7 +230,7 @@ def run_pin_latest(run: Run, *, aura_arm: str = "aura_full_qwen14b", first: str 
     run.prepare(reqs)
     start = run.pins()
     baseline = baseline_from_log(read_log(log))
-    barriers = barriers_from_run(log, result, reqs)
+    barriers = [b for b in barriers_from_run(log, result, reqs) if b.kind == "code"]
     if not barriers:
         run.summary["stop"] = "no barrier"
         return run.finish(start)

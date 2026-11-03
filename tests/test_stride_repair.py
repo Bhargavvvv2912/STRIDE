@@ -342,3 +342,60 @@ def test_unpinned_keeps_package_names():
     assert "timm[extra]" in out and "0.5.4" not in out
     assert "pandas==2.3.3" in out
     assert unpinned(req, ["torch"]).names() == req.names()
+
+
+def _git_repo(tmp_path, files):
+    import subprocess
+    for rel, text in files.items():
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text(text)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    return tmp_path
+
+
+def test_structure_check_catches_swallowed_method(tmp_path):
+    # The OpenCode patch on concept-transformer: a helper inserted above a
+    # method, at module level, made the method part of the helper.
+    from stride import guard
+    root = _git_repo(tmp_path, {
+        "pkg/model.py": "class M:\n    def fit(self):\n        pass\n\n    def opt(self):\n        return 1\n",
+        "tests/test_m.py": "def test_x():\n    pass\n"})
+    before = guard.code_shape(root, [])
+    assert "tests/test_m.py:test_x()" not in before
+    (root / "pkg/model.py").write_text(
+        "class M:\n    def fit(self):\n        pass\n\n\ndef helper(x):\n    return x\n\n"
+        "    def opt(self):\n        return 1\n")
+    after = guard.code_shape(root, [])
+    assert guard.lost_symbols(before, after) == ["pkg/model.py:M.opt"]
+    assert guard.added_symbols(before, after) == ["pkg/model.py:helper()"]
+    (root / "pkg/model.py").write_text("class M:\n  def fit(self:\n")
+    assert guard.lost_symbols(before, guard.code_shape(root, [])) == [
+        "pkg/model.py (syntax error)"]
+
+
+def test_install_barrier_names_the_blocking_package():
+    from stride.barriers import install_barriers
+    events = [{"event": "attempt", "package": "pytorch-lightning", "install_ok": False,
+               "error_class": "resolution_conflict", "plan": {"pytorch-lightning": "2.6.0"},
+               "error_excerpt": "ERROR: Cannot install -r probe.txt (line 4) and "
+                                "pytorch-lightning==2.6.0 because these package versions"}]
+    found = install_barriers(events, {"pytorch-lightning": "1.9.5", "lightning-bolts": "0.7.0"},
+                             {"pytorch-lightning": 43}, {3: "pytorch-lightning", 4: "lightning-bolts"})
+    assert [(b.package, b.target, b.kind, b.blocker) for b in found] == [
+        ("pytorch-lightning", "2.6.0", "install", "lightning-bolts")]
+    assert found[0].label() == "pytorch-lightning 1.9.5 -> 2.6.0 (without lightning-bolts)"
+    # Several packages in the way, or a python-version failure: not one library to replace.
+    events[0]["error_excerpt"] += " (line 3) (line 5)"
+    assert install_barriers(events, {"pytorch-lightning": "1.9.5"}, {},
+                            {4: "lightning-bolts", 5: "torch"}) == []
+
+
+def test_task_prompt_scopes_out_known_failures_and_names_dropped():
+    from stride.repair import task_prompt
+    text = task_prompt(project="p", jump="a 1 -> 2", test_command="pytest", failing=["t1"],
+                       output_tail="", call_sites=[], known_failing=["tests/t.py::old"],
+                       dropped=["lightning-bolts"])
+    assert "tests/t.py::old" in text and "NOT part of this task" in text
+    assert "`lightning-bolts` has been uninstalled" in text
+    assert "Do not delete or disable existing functions" in text

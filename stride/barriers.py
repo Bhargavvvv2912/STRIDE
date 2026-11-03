@@ -8,6 +8,7 @@ version, which is the job STRIDE hands to a code agent.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -26,9 +27,12 @@ class Barrier:
     tier: str = ""
     crosses_major: bool = False
     tried_versions: list[str] = field(default_factory=list)
+    kind: str = "code"           # "code": installs, tests break; "install": blocked
+    blocker: str = ""            # install barrier: the declared package in the way
 
     def label(self) -> str:
-        return f"{self.package} {self.current} -> {self.target}"
+        base = f"{self.package} {self.current} -> {self.target}"
+        return f"{base} (without {self.blocker})" if self.kind == "install" else base
 
     def to_dict(self) -> dict:
         return dict(self.__dict__)
@@ -71,7 +75,8 @@ def baseline_from_log(events: list[dict]) -> dict:
 
 
 def find_barriers(events: list[dict], final_pins: dict[str, str],
-                  releases_behind: dict[str, int] | None = None) -> list[Barrier]:
+                  releases_behind: dict[str, int] | None = None,
+                  line_names: dict[int, str] | None = None) -> list[Barrier]:
     """Every package held back by a test failure, with its smallest breaking release.
 
     ``final_pins`` is the configuration AURA accepted; ``releases_behind`` comes
@@ -111,7 +116,53 @@ def find_barriers(events: list[dict], final_pins: dict[str, str],
         )
     for b in found.values():
         b.tried_versions = sorted(set(b.tried_versions), key=safe_parse_version)
+    for b in install_barriers(events, lowered, releases_behind, line_names or {}):
+        found.setdefault(b.package, b)   # a code barrier for the package wins
     return rank(list(found.values()))
+
+
+_LINE = re.compile(r"\(line (\d+)\)")
+
+
+def install_barriers(events: list[dict], final_pins: dict[str, str],
+                     releases_behind: dict[str, int],
+                     line_names: dict[int, str]) -> list[Barrier]:
+    """Packages held back because another declared package will not install
+    with their newer release (pip: "Cannot install ... (line N) and P==T").
+
+    The blocker is usually a library the project uses that never supported
+    the new release. Version search cannot cross that; a code change that
+    stops using the blocker can. The target is the newest release blocked
+    only by that one package, where the payoff is largest.
+    """
+    found: dict[str, Barrier] = {}
+    for e in events:
+        if e.get("event") != "attempt" or e.get("install_ok"):
+            continue
+        if e.get("error_class") != "resolution_conflict":
+            continue
+        package = (e.get("package") or "").lower()
+        plan = {k.lower(): v for k, v in (e.get("plan") or {}).items()}
+        target, current = plan.get(package), final_pins.get(package)
+        if not target or not current or not _newer(target, current):
+            continue
+        if releases_behind and releases_behind.get(package, 1) == 0:
+            continue
+        lines = {int(n) for n in _LINE.findall(e.get("error_excerpt") or "")}
+        blockers = {line_names[n] for n in lines if n in line_names} - {package} - set(plan)
+        if len(blockers) != 1:     # nothing named, or several: not one library to replace
+            continue
+        blocker = blockers.pop()
+        known = found.get(package)
+        if known is not None and not _newer(target, known.target):
+            continue
+        found[package] = Barrier(
+            package=package, current=current, target=target, plan=plan, new_failures=[],
+            error_excerpt=(e.get("error_excerpt") or "")[-2000:],
+            releases_behind=int(releases_behind.get(package, 0) or 0),
+            tier=e.get("tier") or "", crosses_major=_major(target) != _major(current),
+            tried_versions=[target], kind="install", blocker=blocker)
+    return list(found.values())
 
 
 def smallest_step(barrier: Barrier, index, python_version: str) -> tuple[dict[str, str], list[str]]:
@@ -155,9 +206,15 @@ def barriers_from_run(log_path: str | Path, result_path: str | Path,
     events = read_log(log_path)
     result = json.loads(Path(result_path).read_text())
     pins: dict[str, str] = {}
+    line_names: dict[int, str] = {}
     if requirements_path and Path(requirements_path).exists():
-        pins = ReqFile.load(requirements_path).pins()
+        req = ReqFile.load(requirements_path)
+        pins = req.pins()
+        # AURA's probe files keep the requirements file's line order, so pip's
+        # "(line N)" in a conflict names a declared package.
+        line_names = {i + 1: l.name for i, l in enumerate(req.lines) if l.name}
     for name, (_, after) in (result.get("updated") or {}).items():
         pins.setdefault(name, after)
     behind = (result.get("version_age_after") or {}).get("per_package") or {}
-    return find_barriers(events, pins, {k.lower(): v for k, v in behind.items()})
+    return find_barriers(events, pins, {k.lower(): v for k, v in behind.items()},
+                         line_names)

@@ -132,3 +132,62 @@ def agent_environment(venv_bin: str, shim_dir: Path) -> dict[str, str]:
         "PIP_PROGRESS_BAR": "off", "TQDM_DISABLE": "1",
         "PYTHONDONTWRITEBYTECODE": "1",
     }
+
+
+# ------------------------------------------------------------ code structure
+
+def code_shape(root: Path, protected: list[str]) -> dict[str, list[str] | None]:
+    """The project's source outline: every top-level function, and every class
+    with its methods, in tracked .py files outside the tests.
+
+    Keys look like ``pkg/mod.py:Class`` (value: sorted method names) or
+    ``pkg/mod.py:func()`` (value: None). A file that no longer parses maps
+    to ``{"pkg/mod.py": ["<syntax error>"]}``.
+    """
+    import ast
+    skip = set(protected)
+    files = subprocess.run(["git", "ls-files", "*.py"], cwd=root, capture_output=True,
+                           text=True).stdout.splitlines()
+    shape: dict[str, list[str] | None] = {}
+    for rel in files:
+        parts = Path(rel).parts
+        if rel in skip or any(p in ("tests", "test") or p.startswith((".aura", ".stride"))
+                              for p in parts) or Path(rel).name.startswith("test_"):
+            continue
+        path = root / rel
+        if not path.is_file():
+            shape[rel] = ["<deleted>"]
+            continue
+        try:
+            tree = ast.parse(path.read_text(errors="replace"))
+        except SyntaxError:
+            shape[rel] = ["<syntax error>"]
+            continue
+        for node in tree.body:
+            if isinstance(node, ast.ClassDef):
+                shape[f"{rel}:{node.name}"] = sorted(
+                    n.name for n in node.body
+                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)))
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                shape[f"{rel}:{node.name}()"] = None
+    return shape
+
+
+def lost_symbols(before: dict, after: dict) -> list[str]:
+    """Functions, classes and methods the change removed (or broke the file of)."""
+    lost = []
+    for key, methods in before.items():
+        if key not in after:
+            file = key.split(":")[0]
+            if after.get(file) in (["<syntax error>"], ["<deleted>"]):
+                lost.append(f"{file} ({after[file][0].strip('<>')})")
+            else:
+                lost.append(key)
+        elif methods is not None and after[key] is not None:
+            lost += [f"{key}.{m}" for m in methods if m not in after[key]]
+    return sorted(set(lost))
+
+
+def added_symbols(before: dict, after: dict) -> list[str]:
+    """Top-level functions and classes the change introduced."""
+    return sorted(k for k in after if k not in before and ":" in k)
