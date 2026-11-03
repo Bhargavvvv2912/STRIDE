@@ -399,3 +399,39 @@ def test_task_prompt_scopes_out_known_failures_and_names_dropped():
     assert "tests/t.py::old" in text and "NOT part of this task" in text
     assert "`lightning-bolts` has been uninstalled" in text
     assert "Do not delete or disable existing functions" in text
+
+
+def test_changed_lines_counts_source_additions_only():
+    from stride.behaviour import changed_lines
+    diff = """diff --git a/pkg/m.py b/pkg/m.py
+--- a/pkg/m.py
++++ b/pkg/m.py
+@@ -10,3 +10,4 @@ def f():
+     a = 1
+-    b = 2
++    b = 3
++    c = 4
+     return a
+diff --git a/tests/test_m.py b/tests/test_m.py
+--- a/tests/test_m.py
++++ b/tests/test_m.py
+@@ -1 +1 @@
+-x
++y
+diff --git a/.aura_probe_0_src/pkg/m.py b/.aura_probe_0_src/pkg/m.py
+--- /dev/null
++++ b/.aura_probe_0_src/pkg/m.py
+@@ -0,0 +1 @@
++z
+"""
+    assert changed_lines(diff) == {"pkg/m.py": {11, 12}}
+
+
+def test_probe_comparison():
+    from stride.behaviour import max_relative_difference, same
+    old = {"lr": [0.0, 0.5, 1.0], "opt": "AdamW"}
+    assert same(old, {"lr": [0.0, 0.5 + 1e-9, 1.0], "opt": "AdamW"})
+    near = {"lr": [0.001, 0.5, 1.0], "opt": "AdamW"}
+    assert not same(old, near)
+    assert abs(max_relative_difference(old, near) - 0.001) < 1e-12   # not 100% at zero
+    assert max_relative_difference(old, {"error": "TypeError"}) is None
