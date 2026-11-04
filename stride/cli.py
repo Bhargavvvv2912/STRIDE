@@ -80,11 +80,12 @@ def cmd_check(args) -> None:
     from stride.repair import build_environment
 
     subject = _subject(args.subject, args.registry)
-    results = Path(args.results) / subject.name
-    work = Path(args.work) / "check" / subject.name
+    # absolute: git apply and the tests run from inside the workspace
+    results = Path(args.results).resolve() / subject.name
+    work = Path(args.work).resolve() / "check" / subject.name
     aura_reqs = (Path(args.aura_dir) / subject.name
                  / f"{subject.name}__{args.aura_arm}.requirements.txt")
-    repo_cache = Path(args.repo_cache) if args.repo_cache else None
+    repo_cache = Path(args.repo_cache).resolve() if args.repo_cache else None
     index = PackageIndex()
     probe = behaviour.probe_for(subject.name)
 
