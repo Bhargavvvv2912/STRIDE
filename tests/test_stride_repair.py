@@ -449,3 +449,13 @@ def test_same_list_score_ignores_build_tools_and_counts_removed_as_current():
     assert stride["end"]["mean_releases_behind"] == 4.0
     assert stride["removed"] == ["lightning-bolts"] and baseline["removed"] == []
     assert baseline["start"]["mean_releases_behind"] == 16.5
+
+
+def test_agent_cannot_kill_processes_by_name(tmp_path):
+    import subprocess
+    from stride import guard
+    shims = guard.pip_blocker(tmp_path / "shims")
+    env = guard.agent_environment("/usr/bin", shims)
+    for cmd in ("pkill -f python", "killall python"):
+        out = subprocess.run(cmd, shell=True, env=env, capture_output=True, text=True)
+        assert out.returncode == 1 and "not allowed" in out.stderr

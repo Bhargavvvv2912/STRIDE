@@ -116,6 +116,15 @@ def pip_blocker(bin_dir: Path) -> Path:
         shim.write_text("#!/bin/sh\necho 'Installing or changing packages is not allowed "
                         "in this task: change the code instead.' >&2\nexit 1\n")
         shim.chmod(0o755)
+    # Stopping processes by name can reach past the agent: in one run Codex's
+    # `pkill -f` took down the STRIDE process running the job. `kill <pid>` of
+    # the agent's own processes still works.
+    for name in ("pkill", "killall"):
+        shim = bin_dir / name
+        shim.write_text("#!/bin/sh\necho 'Stopping processes by name is not allowed here: "
+                        "use kill <pid> on a process you started, or run commands with "
+                        "timeout.' >&2\nexit 1\n")
+        shim.chmod(0o755)
     return bin_dir
 
 
