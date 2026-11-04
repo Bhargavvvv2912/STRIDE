@@ -435,3 +435,17 @@ def test_probe_comparison():
     assert not same(old, near)
     assert abs(max_relative_difference(old, near) - 0.001) < 1e-12   # not 100% at zero
     assert max_relative_difference(old, {"error": "TypeError"}) is None
+
+
+def test_same_list_score_ignores_build_tools_and_counts_removed_as_current():
+    from stride.score import same_list_score
+    start = {"per_package": {"torch": 30, "lightning-bolts": 3, "setuptools": 4}}
+    baseline = same_list_score(start, {"per_package": {"torch": 8, "lightning-bolts": 3}},
+                               ["setuptools"])
+    stride = same_list_score(start, {"per_package": {"torch": 8, "setuptools": 4}},
+                             ["lightning-bolts"])
+    assert baseline["end"]["n_packages"] == stride["end"]["n_packages"] == 2
+    assert baseline["end"]["mean_releases_behind"] == 5.5
+    assert stride["end"]["mean_releases_behind"] == 4.0
+    assert stride["removed"] == ["lightning-bolts"] and baseline["removed"] == []
+    assert baseline["start"]["mean_releases_behind"] == 16.5

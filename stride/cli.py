@@ -166,6 +166,24 @@ def cmd_check(args) -> None:
          for k, v in table.items()}, indent=2) + "\n")
 
 
+def cmd_rescore(args) -> None:
+    """Add the same-package-list score to finished summaries and print a table."""
+    from stride.score import add_score
+    root = Path(args.results)
+    for f in sorted(root.glob("*/*/summary.json")):
+        summary = json.loads(f.read_text())
+        if "finished" not in summary:
+            print(f"{f.parent.name:62} not finished")
+            continue
+        add_score(summary)
+        f.write_text(json.dumps(summary, indent=2) + "\n")
+        sc = summary.get("score") or {}
+        end = sc.get("end") or {}
+        print(f"{f.parent.name:62} start={sc.get('start', {}).get('mean_releases_behind')} "
+              f"end={end.get('mean_releases_behind')} n={end.get('n_packages')} "
+              f"removed={','.join(sc.get('removed') or []) or '-'}")
+
+
 def main(argv=None) -> None:
     p = argparse.ArgumentParser(prog="stride")
     p.add_argument("--registry", default=str(ROOT / "subjects.json"))
@@ -211,6 +229,10 @@ def main(argv=None) -> None:
     c.add_argument("--repo-cache", default="")
     c.add_argument("--pip-cache", default=None)
     c.set_defaults(func=cmd_check)
+
+    s = sub.add_parser("rescore", help="score finished runs over the same package list")
+    s.add_argument("--results", default=str(ROOT / "results"))
+    s.set_defaults(func=cmd_rescore)
 
     args = p.parse_args(argv)
     args.func(args)

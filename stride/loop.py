@@ -28,6 +28,7 @@ from stride.barriers import (Barrier, barriers_from_run, baseline_from_log, read
 from stride.coders import CodeAgent
 from stride.scoped import carry_forward, scoped_search, seed_for
 from stride.repair import RepairResult, git, repair_round
+from stride.score import add_score
 
 
 SCRATCH_PATTERNS = (".aura_*", "*.aura_dryrun*", "*.stride_env_*", "stride-work-*",
@@ -135,6 +136,7 @@ class Run:
                                     _first_commit(self.workspace), "HEAD")
         (self.out / "patch_total.diff").write_text(
             git(self.workspace, "diff", _first_commit(self.workspace), "HEAD"))
+        add_score(self.summary)
         self.summary["finished"] = time.strftime("%Y-%m-%d %H:%M:%S")
         (self.out / "summary.json").write_text(json.dumps(self.summary, indent=2) + "\n")
         return self.summary

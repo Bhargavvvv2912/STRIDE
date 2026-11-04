@@ -230,7 +230,8 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
         # The installer chose these; record and pin what it chose, so the next
         # round of version search starts from an exact configuration.
         norm = lambda n: n.lower().replace("_", "-").replace(".", "-")
-        frozen = {norm(k): v for k, v in env.freeze().items()}
+        # --all: plain freeze hides setuptools, which would then stay unpinned.
+        frozen = {norm(k): v for k, v in _freeze_all(env).items()}
         chosen = {u: frozen[norm(u)] for u in unpin if norm(u) in frozen}
         target = target.with_pins(chosen)
         target.save(req_path)
@@ -475,6 +476,15 @@ def _install_moving(env, dist, version, held, hold, stepped, log):
         entry.update({"install": False, "error": f"would downgrade {backward}"})
         return None
     return moved
+
+
+def _freeze_all(env) -> dict[str, str]:
+    """pip freeze including pip, setuptools and wheel."""
+    import subprocess
+    from aura.reqfile import parse_freeze
+    out = subprocess.run([env.python, "-m", "pip", "freeze", "--all"],
+                         capture_output=True, text=True, timeout=300)
+    return parse_freeze(out.stdout) if out.returncode == 0 else env.freeze()
 
 
 def _newer(a: str, b: str) -> bool:
