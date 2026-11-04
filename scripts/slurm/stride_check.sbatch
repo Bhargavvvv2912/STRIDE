@@ -27,7 +27,7 @@ export AURA_VENV_ROOT="$LOCAL_DISK/stride-check-venvs-$SLURM_JOB_ID"
 WORK="$LOCAL_DISK/stride-check-work-$SLURM_JOB_ID"
 PIP_CACHE="$LOCAL_DISK/aura-pip-cache-$USER"
 mkdir -p "$AURA_VENV_ROOT" "$WORK" "$PIP_CACHE"
-trap 'rm -rf "${AURA_VENV_ROOT:?}" "${WORK:?}"' EXIT
+trap 'chmod -R u+w "${AURA_VENV_ROOT:?}" "${WORK:?}" 2>/dev/null || true; rm -rf "${AURA_VENV_ROOT:?}" "${WORK:?}"' EXIT
 
 ./.devenv/bin/python -m stride.cli check "$SUBJECT" --work "$WORK" \
   --repo-cache "$REPO_CACHE" --pip-cache "$PIP_CACHE" "$@"

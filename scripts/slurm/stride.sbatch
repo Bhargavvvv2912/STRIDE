@@ -67,7 +67,14 @@ export OLLAMA_LOAD_TIMEOUT="${OLLAMA_LOAD_TIMEOUT:-20m}"   # server settings: be
 export OLLAMA_KEEP_ALIVE="${OLLAMA_KEEP_ALIVE:-24h}"
 "$OLLAMA_BIN" serve > "slurm_logs/ollama_stride_$SLURM_JOB_ID.log" 2>&1 &
 OLLAMA_PID=$!
-trap 'kill "$OLLAMA_PID" 2>/dev/null || true; rm -rf "${AURA_VENV_ROOT:?}" "${STRIDE_WORK:?}"' EXIT
+# A job killed mid-attempt leaves the test files and folders STRIDE locked
+# read-only, and rm cannot delete inside a read-only folder: unlock first.
+cleanup() {
+  kill "$OLLAMA_PID" 2>/dev/null || true
+  chmod -R u+w "${AURA_VENV_ROOT:?}" "${STRIDE_WORK:?}" 2>/dev/null || true
+  rm -rf "${AURA_VENV_ROOT:?}" "${STRIDE_WORK:?}"
+}
+trap cleanup EXIT
 for _ in $(seq 1 60); do
   curl -s "http://$OLLAMA_HOST/api/tags" >/dev/null && break
   sleep 2
