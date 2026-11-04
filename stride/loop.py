@@ -53,9 +53,12 @@ class Run:
 
     def __init__(self, subject: Subject, arm: str, out_root: Path, work_root: Path,
                  aura_dir: Path, agent: CodeAgent, repo_cache: Path | None = None,
-                 pip_cache: str | None = None, use_triage: bool = True):
+                 pip_cache: str | None = None, use_triage: bool = True,
+                 max_attempts: int = 5, patience: int = 2):
         self.subject, self.arm, self.agent = subject, arm, agent
         self.use_triage = use_triage
+        self.max_attempts, self.patience = max_attempts, patience
+        self.started_at = time.time()
         tag = f"{arm}__{agent.label}" + ("" if use_triage else "__notriage")
         self.out = out_root / subject.name / tag
         self.out.mkdir(parents=True, exist_ok=True)
@@ -65,7 +68,9 @@ class Run:
         self.index = PackageIndex()
         self.summary: dict = {"subject": subject.name, "arm": arm, "agent": agent.name,
                               "model": getattr(agent, "model", ""), "triage": use_triage,
-                              "rounds": [], "started": time.strftime("%Y-%m-%d %H:%M:%S")}
+                              "rounds": [], "started": time.strftime("%Y-%m-%d %H:%M:%S"),
+                              "retry_rule": {"max_attempts": max_attempts,
+                                             "patience": patience}}
 
     # ---------------------------------------------------------------- inputs
 
@@ -116,7 +121,8 @@ class Run:
             config=self.config(), spec=self.spec(), baseline=baseline, agent=self.agent,
             unpin=unpin, index=self.index, python_version=self.subject.python_version,
             out_dir=self.out / tag, tolerance=self.subject.metric_tolerance,
-            use_triage=self.use_triage, drop=drop)
+            use_triage=self.use_triage, drop=drop, max_attempts=self.max_attempts,
+            patience=self.patience)
 
     def finish(self, start_pins: dict[str, str]) -> dict:
         end = self.pins()
@@ -137,9 +143,27 @@ class Run:
         (self.out / "patch_total.diff").write_text(
             git(self.workspace, "diff", _first_commit(self.workspace), "HEAD"))
         add_score(self.summary)
+        self.summary["budget"] = budget(self.summary)
         self.summary["finished"] = time.strftime("%Y-%m-%d %H:%M:%S")
         (self.out / "summary.json").write_text(json.dumps(self.summary, indent=2) + "\n")
         return self.summary
+
+
+def budget(summary: dict) -> dict:
+    """What the agent was given, over every attempt of every round: the same
+    measure for every arm."""
+    out = {"agent_calls": 0, "agent_steps": 0, "agent_seconds": 0.0, "repairs": 0}
+    for r in summary.get("rounds", []):
+        for a in r.get("attempts", []):
+            ag = a.get("agent") or {}
+            if not ag:
+                continue                      # crossed without the agent
+            out["repairs"] += 1
+            out["agent_calls"] += ag.get("calls", 1 if ag.get("steps") is not None else 0)
+            out["agent_steps"] += ag.get("steps") or 0
+            out["agent_seconds"] += ag.get("seconds") or 0
+    out["agent_seconds"] = round(out["agent_seconds"], 1)
+    return out
 
 
 def _first_commit(root: Path) -> str:
@@ -153,10 +177,10 @@ def _first_commit(root: Path) -> str:
 
 # ------------------------------------------------------------------- arms
 
-def run_stride(run: Run, *, max_rounds: int = 4, barriers_per_round: int = 3,
+def run_stride(run: Run, *, max_rounds: int = 10, barriers_per_round: int = 3,
                aura_arm: str = "aura_full_qwen14b", timeout_s: int = 6 * 3600,
                step: str = "smallest", first: str = "", skip_aura: bool = False,
-               rerun: str = "scoped") -> dict:
+               rerun: str = "scoped", time_budget_h: float = 8.0) -> dict:
     """AURA -> code change -> AURA ..., one barrier at a time."""
     log, result, reqs = run.aura_files(aura_arm)
     run.prepare(reqs)
@@ -167,15 +191,27 @@ def run_stride(run: Run, *, max_rounds: int = 4, barriers_per_round: int = 3,
     known = barriers_from_run(log, result, reqs)
     run.summary["rerun"] = rerun
 
+    # Rounds run until a round crosses nothing (or max_rounds, a safety cap).
+    # A barrier that failed is tried again once a later round has moved other
+    # packages: the key includes the pins it was tried under.
+    def key(b: Barrier) -> str:
+        return f"{b.package}@{b.current}|" + ",".join(f"{k}={v}" for k, v in
+                                                      sorted(run.pins().items()))
+
     for r in range(1, max_rounds + 1):
-        barriers = [b for b in known if f"{b.package}@{b.current}" not in tried]
+        if time.time() - run.started_at > time_budget_h * 3600:
+            run.summary["stop"] = "time budget"
+            break
+        barriers = [b for b in known if key(b) not in tried]
         if first:   # a barrier named on the command line goes first, in round 1
             barriers.sort(key=lambda b: b.package != first.lower())
             first = ""
         round_info = {"round": r, "barriers_found": [b.label() for b in barriers]}
         crossed: Barrier | None = None
         for b in barriers[:barriers_per_round]:
-            tried.add(f"{b.package}@{b.current}")
+            if time.time() - run.started_at > time_budget_h * 3600:
+                break
+            tried.add(key(b))
             if step == "smallest":
                 pins, unpin = smallest_step(b, run.index, run.subject.python_version)
             else:                       # the exact plan AURA saw break

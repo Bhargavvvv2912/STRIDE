@@ -44,14 +44,15 @@ def cmd_run(args) -> None:
                          wall_time_s=args.agent_minutes * 60)
     run = Run(subject, args.arm, Path(args.out), Path(args.work), Path(args.aura_dir),
               agent, repo_cache=Path(args.repo_cache) if args.repo_cache else None,
-              pip_cache=args.pip_cache, use_triage=not args.no_triage)
+              pip_cache=args.pip_cache, use_triage=not args.no_triage,
+              max_attempts=args.max_attempts, patience=args.patience)
     kwargs = {"aura_arm": args.aura_arm}
     if args.arm == "pin_latest":
         kwargs["first"] = args.first
     if args.arm == "stride":
         kwargs.update(max_rounds=args.rounds, barriers_per_round=args.barriers_per_round,
                       step=args.step, first=args.first, skip_aura=args.skip_aura,
-                      rerun=args.rerun)
+                      rerun=args.rerun, time_budget_h=args.time_budget_h)
     with subject_environment(subject):
         summary = ARMS[args.arm](run, **kwargs)
     print(json.dumps({k: summary.get(k) for k in ("subject", "arm", "agent")}, indent=1))
@@ -207,7 +208,14 @@ def main(argv=None) -> None:
     r.add_argument("--no-triage", action="store_true",
                    help="skip dependency triage: every failing step goes to the agent "
                         "(the DepBench-style baseline)")
-    r.add_argument("--rounds", type=int, default=4)
+    r.add_argument("--rounds", type=int, default=10,
+                   help="safety cap: stride stops earlier when a round crosses nothing")
+    r.add_argument("--max-attempts", type=int, default=5,
+                   help="agent calls per repair, each building on the last (every arm)")
+    r.add_argument("--patience", type=int, default=2,
+                   help="stop retrying after this many calls without fewer failing tests")
+    r.add_argument("--time-budget-h", type=float, default=8.0,
+                   help="stride starts no new repair after this many hours")
     r.add_argument("--barriers-per-round", type=int, default=3)
     r.add_argument("--step", default="smallest", choices=["smallest", "aura_plan"],
                    help="jump size across a barrier (stride arm)")

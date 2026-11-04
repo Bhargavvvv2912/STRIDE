@@ -27,7 +27,7 @@ cd "$(dirname "$0")/../.."
 MODELS=${MODELS:-"qwen3-coder:30b qwen3-coder-next:latest"}
 AGENTS=${AGENTS:-"mini-swe-agent codex opencode"}
 ARMS=${ARMS:-"stride pin_latest all_latest"}
-ROUNDS=${ROUNDS:-4}   # room for an install barrier after the code ones
+ROUNDS=${ROUNDS:-10}  # safety cap; stride stops when a round crosses nothing
 PARALLEL=${PARALLEL:-4}
 SKIP=${SKIP:-0}
 PREVS=()

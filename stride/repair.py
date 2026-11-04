@@ -51,6 +51,8 @@ class RepairResult:
     fixed_baseline: list[str] = field(default_factory=list)  # failed before any upgrade, pass now
     scope_creep: bool = False      # added code and made already-failing tests pass
     dropped: list[str] = field(default_factory=list)         # packages removed to cross
+    attempts: list[dict] = field(default_factory=list)       # one entry per agent call
+    stop: str = ""                                           # why the retries ended
 
 
 def git(root: Path, *args: str, check: bool = False) -> str:
@@ -197,7 +199,8 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
                  unpin: list[str] | None = None, index=None, python_version: str = "",
                  baseline: dict, agent: CodeAgent, out_dir: Path,
                  tolerance: float = 0.01, use_triage: bool = True,
-                 drop: list[str] | None = None) -> RepairResult:
+                 drop: list[str] | None = None, max_attempts: int = 5,
+                 patience: int = 2) -> RepairResult:
     started = time.time()
     out_dir.mkdir(parents=True, exist_ok=True)
     result = RepairResult(label=label, pins=dict(pins))
@@ -302,58 +305,184 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
                        known_failing=known_failing, dropped=result.dropped)
     (out_dir / "task.md").write_text(task)
 
-    shape_before = guard.code_shape(workspace, protected_rel)
-    with guard.Lock(workspace, protected) as lock:
-        run: AgentRun = agent.run(task, workspace, agent_env, out_dir)
-        tampered = lock.tampered()
-    result.agent = asdict(run)
-
-    diff = code_diff(workspace, protected_rel)
-    (out_dir / "patch.diff").write_text(diff)
-    result.files_changed, result.lines_added, result.lines_removed = diff_stats(diff)
-    result.tampered = tampered
-    result.skips_added = len(guard.added_skips(diff))
-    frozen_after = env.freeze()
-    result.packages_changed = sorted(k for k in set(frozen_before) | set(frozen_after)
-                                     if frozen_before.get(k) != frozen_after.get(k))
-
-    after = validator.run(env.python)
-    (out_dir / "tests_after.txt").write_text(after.output[-20000:])
-    result.failing_after = sorted(after.failing)
-    ok, new_failures, drifted, _ = validator.judge(after)
-    result.new_failures = new_failures + drifted
-    shape_after = guard.code_shape(workspace, protected_rel)
-    result.lost_symbols = guard.lost_symbols(shape_before, shape_after)
-    result.added_symbols = guard.added_symbols(shape_before, shape_after)
-    result.fixed_baseline = sorted(set(known_failing) - set(after.failing))
+    start_new = len(new or before.failing)
+    attempts = _agent_attempts(
+        task=task, workspace=workspace, protected=protected, protected_rel=protected_rel,
+        agent=agent, agent_env=agent_env, out_dir=out_dir, validator=validator, env=env,
+        frozen_before=frozen_before, known_failing=known_failing, start_new=start_new,
+        max_attempts=max_attempts, patience=patience)
+    last, stop = attempts["last"], attempts["stop"]
+    for key in ("failing_after", "new_failures", "tampered", "skips_added",
+                "packages_changed", "lost_symbols", "added_symbols", "fixed_baseline",
+                "files_changed", "lines_added", "lines_removed"):
+        setattr(result, key, last[key])
     result.scope_creep = bool(result.fixed_baseline and result.added_symbols)
+    result.agent = attempts["agent"]
+    result.attempts = attempts["log"]
+    result.stop = stop
+    result.reason = last["reason"]
+    result.accepted = last["reason"] == "repaired"
+    (out_dir / "patch.diff").write_text(git(   # all attempts together
+        workspace, "diff", attempts["pin_commit"], "--", ".",
+        *[f":(exclude){p}" for p in protected_rel]))
 
-    if run.exit_status == "crashed" and not result.files_changed:
-        result.reason = "agent_error"          # infrastructure, not a failed repair
-    elif tampered:
-        result.reason = "edited_protected_files"
-    elif result.skips_added:
-        result.reason = "added_skips"
-    elif result.packages_changed:
-        result.reason = "changed_packages"
-    elif result.lost_symbols:
-        result.reason = "removed_code"         # tests pass, but code went missing
-    elif not ok:
-        result.reason = "tests_still_fail"
-    else:
-        result.accepted, result.reason = True, "repaired"
-
-    if result.accepted:
+    if result.accepted:   # one commit for the code change, over the attempts
+        git(workspace, "reset", "-q", "--soft", attempts["pin_commit"])
         git(workspace, "add", "-A", "--", ".", *[f":(exclude){p}" for p in protected_rel])
         git(workspace, "commit", "-qm", f"STRIDE: code change for {label}")
     else:
-        guard.restore(workspace, tampered)
-        git(workspace, "reset", "-q", "--hard", "HEAD~1")   # drop code and the pin commit
+        git(workspace, "reset", "-q", "--hard", attempts["pin_commit"])
+        git(workspace, "reset", "-q", "--hard", "HEAD~1")   # drop the pin commit too
         git(workspace, "clean", "-fdq", "-e", ".aura*", "-e", ".stride*")
     env.destroy()
     shutil.rmtree(shims, ignore_errors=True)
     result.seconds = round(time.time() - started, 1)
     return _save(result, out_dir)
+
+
+# --------------------------------------------------------------- retries
+#
+# Every arm gets the same retry rule. Each call builds on the last: the patch
+# so far stays in the working tree and the agent is told what still fails.
+# Calls stop when a patch is accepted, when a call changes nothing, when the
+# number of failing tests has not dropped for ``patience`` calls in a row, or
+# after ``max_attempts`` calls. A call that breaks a rule (edits tests, adds
+# skips, deletes code) is undone before the next one.
+
+WHY = {
+    "tests_still_fail": "some tests still fail",
+    "edited_protected_files": "it changed protected files (tests or requirements)",
+    "added_skips": "it added skip markers to tests",
+    "removed_code": "it deleted or disabled existing functions, classes or methods",
+    "changed_packages": "it changed the installed packages",
+}
+UNDONE = {"edited_protected_files", "added_skips", "removed_code"}
+
+
+def retry_prompt(task: str, *, attempt: int, max_attempts: int, reason: str,
+                 detail: list[str], failing: list[str], output_tail: str,
+                 kept: bool) -> str:
+    fails = "\n".join(f"  - {t}" for t in failing[:40]) or "  (none)"
+    extra = ("\n".join(f"  - {d}" for d in detail[:20]) + "\n") if detail else ""
+    state = ("Your changes so far are kept: continue from the current code."
+             if kept else "Those changes were undone: the code is back to the state "
+                          "before that attempt.")
+    return f"""{task}
+--- Attempt {attempt} of {max_attempts} ---
+The previous attempt was not accepted: {WHY.get(reason, reason)}.
+{extra}{state}
+
+Tests that fail now:
+{fails}
+
+Last part of the test output:
+```
+{output_tail[-3500:]}
+```
+"""
+
+
+def _snapshot(workspace: Path, protected_rel: list[str], message: str) -> None:
+    git(workspace, "add", "-A", "--", ".", *[f":(exclude){p}" for p in protected_rel])
+    git(workspace, "commit", "-qm", message, "--allow-empty")
+
+
+def _agent_attempts(*, task, workspace, protected, protected_rel, agent, agent_env,
+                    out_dir, validator, env, frozen_before, known_failing, start_new,
+                    max_attempts, patience) -> dict:
+    pin_commit = git(workspace, "rev-parse", "HEAD").strip()
+    log, totals = [], {"calls": 0, "steps": 0, "prompt_tokens": 0,
+                       "completion_tokens": 0, "seconds": 0.0}
+    best, stale, prompt, last, stop = start_new, 0, task, None, ""
+    excludes = [f":(exclude){p}" for p in protected_rel]
+    shape_start = guard.code_shape(workspace, protected_rel)   # before any attempt
+    for k in range(1, max_attempts + 1):
+        here = out_dir / f"attempt{k}"
+        here.mkdir(parents=True, exist_ok=True)
+        (here / "task.md").write_text(prompt)
+        with guard.Lock(workspace, protected) as lock:
+            run: AgentRun = agent.run(prompt, workspace, agent_env, here)
+            tampered = lock.tampered()
+        git(workspace, "add", "--intent-to-add", "--", ".", *excludes)   # new files count
+        step_diff = code_diff(workspace, protected_rel)    # this call's change
+        (here / "patch.diff").write_text(step_diff)
+        frozen_after = env.freeze()
+        after = validator.run(env.python)
+        (here / "tests_after.txt").write_text(after.output[-20000:])
+        ok, new_failures, drifted, _ = validator.judge(after)
+        shape_after = guard.code_shape(workspace, protected_rel)
+        files, added, removed = diff_stats(git(workspace, "diff", pin_commit, "--", ".",
+                                               *excludes))
+        last = {
+            "failing_after": sorted(after.failing),
+            "new_failures": new_failures + drifted,
+            "tampered": tampered,
+            "skips_added": len(guard.added_skips(step_diff)),
+            "packages_changed": sorted(k2 for k2 in set(frozen_before) | set(frozen_after)
+                                       if frozen_before.get(k2) != frozen_after.get(k2)),
+            "lost_symbols": guard.lost_symbols(shape_start, shape_after),
+            "added_symbols": guard.added_symbols(shape_start, shape_after),
+            "fixed_baseline": sorted(set(known_failing) - set(after.failing)),
+            "files_changed": files, "lines_added": added, "lines_removed": removed,
+        }
+        if run.exit_status == "crashed" and not step_diff:
+            reason = "agent_error"             # infrastructure, not a failed repair
+        elif tampered:
+            reason = "edited_protected_files"
+        elif last["skips_added"]:
+            reason = "added_skips"
+        elif last["packages_changed"]:
+            reason = "changed_packages"
+        elif last["lost_symbols"]:
+            reason = "removed_code"            # tests pass, but code went missing
+        elif not ok:
+            reason = "tests_still_fail"
+        else:
+            reason = "repaired"
+        last["reason"] = reason
+        for key in ("steps", "prompt_tokens", "completion_tokens", "seconds"):
+            totals[key] += getattr(run, key) or 0
+        totals["calls"] += 1
+        totals["exit_status"], totals["error"] = run.exit_status, run.error
+        totals["trajectory"] = run.trajectory
+        log.append({"attempt": k, "reason": reason, "new_failures": len(last["new_failures"]),
+                    "changed": bool(step_diff), "exit_status": run.exit_status,
+                    "steps": run.steps, "seconds": run.seconds})
+        if reason == "repaired":
+            stop = "accepted"
+            break
+        if reason in ("agent_error", "changed_packages"):
+            stop = reason                       # the environment can't be trusted
+            break
+        if not step_diff and not tampered:
+            stop = "no_change"
+            break
+        detail = (tampered if reason == "edited_protected_files" else
+                  last["lost_symbols"] if reason == "removed_code" else [])
+        kept = reason not in UNDONE
+        if kept:
+            _snapshot(workspace, protected_rel, f"STRIDE: attempt {k}")
+            n = len(last["new_failures"])
+            if n < best:
+                best, stale = n, 0
+            else:
+                stale += 1
+        else:
+            guard.restore(workspace, tampered)
+            git(workspace, "reset", "-q", "--hard", "HEAD")
+            git(workspace, "clean", "-fdq", "-e", ".aura*", "-e", ".stride*")
+            stale += 1
+        if stale >= patience:
+            stop = "no_progress"
+            break
+        if k == max_attempts:
+            stop = "max_attempts"
+            break
+        prompt = retry_prompt(task, attempt=k + 1, max_attempts=max_attempts, reason=reason,
+                              detail=detail, failing=sorted(after.failing),
+                              output_tail=after.output, kept=kept)
+    return {"last": last, "stop": stop, "log": log, "agent": totals,
+            "pin_commit": pin_commit}
 
 
 MODULE_TO_DIST = r"""
