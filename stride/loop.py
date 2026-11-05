@@ -37,19 +37,25 @@ from stride.score import add_score
 
 
 SCRATCH_PATTERNS = (".aura_*", "*.aura_dryrun*", "*.stride_env_*", "stride-work-*",
-                    ".stride*", "__pycache__/")
+                    ".stride*", "__pycache__/",
+                    # build output from installing the project: not an edit
+                    "*.egg-info/", ".eggs/", "build/", ".pytest_cache/")
+
+
+# Every environment, in every arm, is built under these. A new environment
+# upgrades setuptools to its newest release, and setuptools 82 removed
+# pkg_resources: graphene-mongodb's baseline went from 3 failing tests to 45
+# depending on which setuptools was current that day.
+ENV_CONSTRAINTS = ("setuptools<82",)
 
 
 def cap_as_of(run: "Run", names) -> dict[str, str]:
     """Pip constraints capping ``names`` at the measurement date, so a free
     resolve can only pick releases out by then. Returns the caps."""
     caps = {n: v for n in names if (v := run.latest(n))}
-    path = run.out / "as_of_constraints.txt"
-    spec = run.spec()
-    existing = Path(spec.build_constraints).read_text() if spec.build_constraints else ""
-    path.write_text(existing + "".join(f"{k}<={v}\n" for k, v in sorted(caps.items())))
-    run.constraints = str(path)
+    run.caps = caps
     run.summary["as_of_caps"] = caps
+    run.spec()                              # rewrites the constraints file
     return caps
 
 
@@ -90,8 +96,36 @@ class Run:
         return self.aura_dir / f"{self.subject.name}.baseline.txt"
 
     def baseline_tests(self, aura_arm: str = "aura_full_qwen14b") -> dict:
-        """Tests already failing at the baseline (from AURA's run)."""
-        return baseline_from_log(read_log(self.aura_files(aura_arm)[0]))
+        """Tests already failing at the baseline, measured here and now: the
+        baseline requirements installed in this run's environment, the tests
+        run once. Every arm measures it the same way (stride's AURA search does
+        the same from the same file), so no arm is judged against a baseline
+        measured on another machine. Falls back to AURA's log if the baseline
+        does not install."""
+        cache = self.out / "baseline_tests.json"
+        if cache.exists():
+            return json.loads(cache.read_text())
+        from aura.validation import Validator
+        from stride.repair import build_environment
+        env, _ = build_environment(self.workspace.parent / f".stride_base_{self.workspace.name}",
+                                   self.spec(), ReqFile.load(self.baseline_file()),
+                                   self.workspace, self.config())
+        if env is None:
+            found = baseline_from_log(read_log(self.aura_files(aura_arm)[0]))
+            found["source"] = "aura_log"
+        else:
+            try:
+                result = Validator(self.config(),
+                                   tolerance=self.subject.metric_tolerance).run(env.python)
+                found = {"failing": sorted(result.failing),
+                         "metrics": dict(result.metrics or {}),
+                         "counts": dict(getattr(result, "counts", {}) or {}),
+                         "source": "measured"}
+            finally:
+                env.destroy()
+        cache.write_text(json.dumps(found, indent=2) + "\n")
+        self.summary["baseline_failing"] = found["failing"]
+        return found
 
     def prepare(self, requirements: Path | None = None) -> None:
         requirements = requirements or self.baseline_file()
@@ -108,13 +142,21 @@ class Run:
         git(self.workspace, "add", self.subject.requirements_file)
         git(self.workspace, "commit", "-qm", "STRIDE: start", "--allow-empty")
 
-    constraints: str | None = None     # extra pip constraints (all_latest's date caps)
+    constraints: str | None = None     # this run's pip constraints file
+    caps: dict[str, str] = {}          # measurement-date caps (all_latest, agent_alone)
 
-    def spec(self):
-        spec = _env_spec(self.subject, SimpleNamespace(installer="pip"), self.workspace,
-                         self.index, self.pip_cache)
-        if self.constraints:
-            spec.build_constraints = self.constraints
+    def spec(self, base=None):
+        spec = base or _env_spec(self.subject, SimpleNamespace(installer="pip"),
+                                 self.workspace, self.index, self.pip_cache)
+        text = ""
+        if spec.build_constraints and spec.build_constraints != self.constraints:
+            text = Path(spec.build_constraints).read_text()
+        text += "".join(f"{c}\n" for c in ENV_CONSTRAINTS)
+        text += "".join(f"{k}<={v}\n" for k, v in sorted(self.caps.items()))
+        path = self.out / "constraints.txt"
+        path.write_text(text)
+        self.constraints = str(path)
+        spec.build_constraints = self.constraints
         return spec
 
     def config(self) -> dict:
@@ -212,7 +254,7 @@ def run_stride(run: Run, *, aura_arm: str = "aura_full_qwen14b",
     ctx = Context(run, max_tries_per_package=max_tries_per_package,
                   time_budget_h=time_budget_h)
     log = run.out / "search.jsonl"
-    with stride_search(ctx):
+    with stride_search(ctx), _constrained_envs(run):
         aura = run_aura_arm(run.subject, by_name(search_arm), run.workspace, log,
                             index=run.index, timeout_s=int(time_budget_h * 3600),
                             pip_cache=run.pip_cache)
@@ -233,7 +275,7 @@ def run_dependabot_agent(run: Run, *, aura_arm: str = "aura_full_qwen14b",
     baseline = run.baseline_tests(aura_arm)
     for p in range(1, passes + 1):
         moved = 0
-        for name in sorted(run.pins(), key=str.lower):
+        for name in sorted(start, key=str.lower):     # the project's own packages
             current, latest = run.pins().get(name), run.latest(name)
             if not current or not latest or not _newer(latest, current):
                 continue
@@ -266,6 +308,22 @@ def run_agent_alone(run: Run, *, aura_arm: str = "aura_full_qwen14b", **_) -> di
     caps = cap_as_of(run, start)
     agent_alone(run, run.baseline_tests(aura_arm), caps)
     return run.finish(start)
+
+
+import contextlib
+
+
+@contextlib.contextmanager
+def _constrained_envs(run: Run):
+    """AURA's own environments (inside the stride search) under the same
+    constraints as every other arm."""
+    import evaluation.runner as runner
+    original = runner._env_spec
+    runner._env_spec = lambda *a, **k: run.spec(original(*a, **k))
+    try:
+        yield
+    finally:
+        runner._env_spec = original
 
 
 def _newer(a: str, b: str) -> bool:

@@ -400,7 +400,7 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
     result.attempts = attempts["log"]
     result.stop = stop
     result.reason = last["reason"]
-    result.accepted = last["reason"] == "repaired"
+    result.accepted = last["reason"] in ("repaired", "no_code_change_needed")
     (out_dir / "patch.diff").write_text(git(   # all attempts together
         workspace, "diff", attempts["pin_commit"], "--", ".",
         *[f":(exclude){p}" for p in protected_rel]))
@@ -526,6 +526,10 @@ def _agent_attempts(*, task, workspace, protected, protected_rel, test_rel=(), a
             reason = "removed_code"            # tests pass, but code went missing
         elif not ok:
             reason = "tests_still_fail"
+        elif not step_diff and k == 1:
+            # Passing now with nothing changed: the first test run was flaky.
+            # Accepted, but not credited to the agent.
+            reason = "no_code_change_needed"
         else:
             reason = "repaired"
         last["reason"] = reason
@@ -537,7 +541,7 @@ def _agent_attempts(*, task, workspace, protected, protected_rel, test_rel=(), a
         log.append({"attempt": k, "reason": reason, "new_failures": len(last["new_failures"]),
                     "changed": bool(step_diff), "exit_status": run.exit_status,
                     "steps": run.steps, "seconds": run.seconds})
-        if reason == "repaired":
+        if reason in ("repaired", "no_code_change_needed"):
             stop = "accepted"
             break
         if reason in ("agent_error", "changed_packages"):
