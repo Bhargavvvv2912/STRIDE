@@ -29,12 +29,12 @@ def probe():
             scheduler = scheduler["scheduler"]
         rates = []
         for _ in range(max_epochs):
-            rates.append(optimizer.param_groups[0]["lr"])
+            rates.append(float(optimizer.param_groups[0]["lr"]))   # may be a tensor
             optimizer.step()
             scheduler.step()
         out[f"warmup{warmup}_epochs{max_epochs}"] = {
             "optimizer": type(optimizer).__name__,
-            "weight_decay": optimizer.param_groups[0]["weight_decay"],
+            "weight_decay": float(optimizer.param_groups[0]["weight_decay"]),
             "lr_by_epoch": rates,
         }
     return out
