@@ -1,12 +1,19 @@
-"""The STRIDE arms.
+"""The arms. Every one starts from the same place: the project's working
+baseline as AURA established it (``<subject>.baseline.txt``), and is scored the
+same way (stride.score). The agent, its retries and the checks on its changes
+are the same in every arm (stride.repair).
 
-stride        version search (AURA) -> one code change across the top barrier ->
-              version search again ... until no barrier is crossed or the round
-              budget is spent. Starts from a finished AURA run.
-pin_latest    the DepBench/RepoRescue setting: from AURA's final state, pin the
-              top barrier package (and the packages AURA moved with it) to their
-              latest release and ask the agent to repair. No version search.
-all_latest    every package at its latest release at once, then repair.
+stride           AURA's version search; when it stops at a code barrier, the
+                 agent repairs the code (stride.search). Ours.
+agent_alone      a coding agent gets the repository and is asked to upgrade the
+                 dependencies as far as it can, changing code as needed. It picks
+                 the versions itself (stride.alone).
+dependabot_agent one package at a time to its latest release, as Dependabot
+                 proposes it; the agent repairs each bump; repeated until a pass
+                 changes nothing.
+all_latest       RepoRescue's setting: every pin removed, pip picks the newest set
+                 that installs, then the agent repairs.
+AURA alone (no code changes) is the published AURA run; it is read, not rerun.
 """
 from __future__ import annotations
 
@@ -23,10 +30,8 @@ from aura.reqfile import ReqFile
 from evaluation.runner import _env_spec, prepare_workspace, run_aura_arm
 from evaluation.subjects import Subject
 
-from stride.barriers import (Barrier, barriers_from_run, baseline_from_log, read_log,
-                             smallest_step)
+from stride.barriers import baseline_from_log, read_log
 from stride.coders import CodeAgent
-from stride.scoped import carry_forward, scoped_search, seed_for
 from stride.repair import RepairResult, git, repair_round
 from stride.score import add_score
 
@@ -59,6 +64,7 @@ class Run:
         self.use_triage = use_triage
         self.max_attempts, self.patience = max_attempts, patience
         self.started_at = time.time()
+        self.repairs: list[dict] = []          # every repair, in order
         tag = f"{arm}__{agent.label}" + ("" if use_triage else "__notriage")
         self.out = out_root / subject.name / tag
         self.out.mkdir(parents=True, exist_ok=True)
@@ -79,7 +85,16 @@ class Run:
         return (base.with_suffix(".jsonl"), base.with_suffix(".result.json"),
                 Path(str(base) + ".requirements.txt"))
 
-    def prepare(self, requirements: Path) -> None:
+    def baseline_file(self) -> Path:
+        """The project's working baseline, as AURA established it."""
+        return self.aura_dir / f"{self.subject.name}.baseline.txt"
+
+    def baseline_tests(self, aura_arm: str = "aura_full_qwen14b") -> dict:
+        """Tests already failing at the baseline (from AURA's run)."""
+        return baseline_from_log(read_log(self.aura_files(aura_arm)[0]))
+
+    def prepare(self, requirements: Path | None = None) -> None:
+        requirements = requirements or self.baseline_file()
         prepare_workspace(self.subject, self.workspace, self.repo_cache)
         shutil.copy(requirements, self.workspace / self.subject.requirements_file)
         git(self.workspace, "config", "user.email", "stride@localhost")
@@ -91,8 +106,7 @@ class Run:
         with exclude.open("a") as fh:
             fh.write("\n".join(SCRATCH_PATTERNS) + "\n")
         git(self.workspace, "add", self.subject.requirements_file)
-        git(self.workspace, "commit", "-qm", "STRIDE: start from AURA's final state",
-            "--allow-empty")
+        git(self.workspace, "commit", "-qm", "STRIDE: start", "--allow-empty")
 
     constraints: str | None = None     # extra pip constraints (all_latest's date caps)
 
@@ -115,7 +129,7 @@ class Run:
     def repair(self, label: str, pins: dict[str, str], moved: list[str], baseline: dict,
                tag: str, unpin: list[str] | None = None,
                drop: list[str] | None = None) -> RepairResult:
-        return repair_round(
+        result = repair_round(
             label=label, project=self.subject.name, workspace=self.workspace,
             requirements_file=self.subject.requirements_file, pins=pins, moved=moved,
             config=self.config(), spec=self.spec(), baseline=baseline, agent=self.agent,
@@ -123,8 +137,15 @@ class Run:
             out_dir=self.out / tag, tolerance=self.subject.metric_tolerance,
             use_triage=self.use_triage, drop=drop, max_attempts=self.max_attempts,
             patience=self.patience)
+        self.repairs.append(asdict(result))
+        (self.out / "summary.json").write_text(json.dumps(
+            {**self.summary, "repairs": self.repairs}, indent=2) + "\n")
+        return result
 
     def finish(self, start_pins: dict[str, str]) -> dict:
+        git(self.workspace, "add", "-A")
+        git(self.workspace, "commit", "-qm", "STRIDE: final state", "--allow-empty")
+        self.summary["repairs"] = self.repairs
         end = self.pins()
         # Measure the packages the project declared; pins STRIDE added for
         # transitive packages are reported separately, not scored.
@@ -153,166 +174,105 @@ def budget(summary: dict) -> dict:
     """What the agent was given, over every attempt of every round: the same
     measure for every arm."""
     out = {"agent_calls": 0, "agent_steps": 0, "agent_seconds": 0.0, "repairs": 0}
-    for r in summary.get("rounds", []):
-        for a in r.get("attempts", []):
-            ag = a.get("agent") or {}
-            if not ag:
-                continue                      # crossed without the agent
-            out["repairs"] += 1
-            out["agent_calls"] += ag.get("calls", 1 if ag.get("steps") is not None else 0)
-            out["agent_steps"] += ag.get("steps") or 0
-            out["agent_seconds"] += ag.get("seconds") or 0
+    attempts = [a for r in summary.get("rounds", []) for a in r.get("attempts", [])]
+    attempts += summary.get("repairs", [])
+    attempts += summary.get("alone_attempts", [])
+    for a in attempts:
+        ag = a.get("agent") or {}
+        if not ag:
+            continue                      # crossed without the agent
+        out["repairs"] += 1
+        out["agent_calls"] += ag.get("calls", 1 if ag.get("steps") is not None else 0)
+        out["agent_steps"] += ag.get("steps") or 0
+        out["agent_seconds"] += ag.get("seconds") or 0
     out["agent_seconds"] = round(out["agent_seconds"], 1)
     return out
 
 
 def _first_commit(root: Path) -> str:
-    """STRIDE's starting commit (AURA's final state), for the total patch."""
+    """The run's starting commit, for the total patch."""
     log = git(root, "log", "--format=%H %s").splitlines()
     for line in log:
-        if "start from AURA's final state" in line:
+        if line.split(" ", 1)[-1] in ("STRIDE: start", "STRIDE: start from AURA's final state"):
             return line.split()[0]
     return "HEAD"
 
 
 # ------------------------------------------------------------------- arms
 
-def run_stride(run: Run, *, max_rounds: int = 10, barriers_per_round: int = 3,
-               aura_arm: str = "aura_full_qwen14b", timeout_s: int = 6 * 3600,
-               step: str = "smallest", first: str = "", skip_aura: bool = False,
-               rerun: str = "scoped", time_budget_h: float = 8.0) -> dict:
-    """AURA -> code change -> AURA ..., one barrier at a time."""
-    log, result, reqs = run.aura_files(aura_arm)
-    run.prepare(reqs)
-    start = run.pins()
-    baseline = baseline_from_log(read_log(log))
-    run.summary["baseline_failing"] = baseline["failing"]
-    tried: set[str] = set()
-    known = barriers_from_run(log, result, reqs)
-    run.summary["rerun"] = rerun
-
-    # Rounds run until a round crosses nothing (or max_rounds, a safety cap).
-    # A barrier that failed is tried again once a later round has moved other
-    # packages: the key includes the pins it was tried under.
-    def key(b: Barrier) -> str:
-        return f"{b.package}@{b.current}|" + ",".join(f"{k}={v}" for k, v in
-                                                      sorted(run.pins().items()))
-
-    for r in range(1, max_rounds + 1):
-        if time.time() - run.started_at > time_budget_h * 3600:
-            run.summary["stop"] = "time budget"
-            break
-        barriers = [b for b in known if key(b) not in tried]
-        if first:   # a barrier named on the command line goes first, in round 1
-            barriers.sort(key=lambda b: b.package != first.lower())
-            first = ""
-        round_info = {"round": r, "barriers_found": [b.label() for b in barriers]}
-        crossed: Barrier | None = None
-        for b in barriers[:barriers_per_round]:
-            if time.time() - run.started_at > time_budget_h * 3600:
-                break
-            tried.add(key(b))
-            if step == "smallest":
-                pins, unpin = smallest_step(b, run.index, run.subject.python_version)
-            else:                       # the exact plan AURA saw break
-                pins, unpin = dict(b.plan), []
-            label = f"{b.package} {b.current} -> {pins[b.package]}"
-            drop = None
-            if b.kind == "install":     # cross by no longer using the blocking package
-                drop = [b.blocker]
-                unpin = [u for u in unpin if u != b.blocker]
-                label += f" (without {b.blocker})"
-            outcome = run.repair(label, pins, list(b.plan), baseline,
-                                 tag=f"round{r}_{b.package}", unpin=unpin, drop=drop)
-            round_info.setdefault("attempts", []).append(asdict(outcome))
-            if outcome.accepted:
-                crossed = b
-                break
-        run.summary["rounds"].append(round_info)
-        if crossed is None:
-            round_info["stop"] = "no barrier crossed"
-            break
-        if skip_aura:   # smoke test: stop after the first code change
-            round_info["stop"] = "skip_aura"
-            break
-
-        # Version search again, from the new code and the new pins.
-        stem = f"round{r}_aura"
-        log = run.out / f"{stem}.jsonl"
-        result = run.out / f"{stem}.result.json"
-        reqs = run.out / f"{stem}.requirements.txt"
-        arm = _aura_arm(aura_arm)
-        run.subject.frozen_baseline = str(run.out / f"{stem}.baseline.txt")
-        accepted = round_info["attempts"][-1]
-        scope = seed_for(crossed.package, crossed.plan, accepted.get("pins"))
-        round_info["scope_seed"] = sorted(scope)
-        search = scoped_search(scope) if rerun == "scoped" else _nullcontext()
-        with search:
-            aura = run_aura_arm(run.subject, arm, run.workspace, log, index=run.index,
-                                timeout_s=timeout_s, pip_cache=run.pip_cache)
-        result.write_text(json.dumps(asdict(aura), indent=2) + "\n")
-        shutil.copy(run.workspace / run.subject.requirements_file, reqs)
-        git(run.workspace, "add", run.subject.requirements_file)
-        git(run.workspace, "commit", "-qm", f"STRIDE: AURA round {r}", "--allow-empty")
-        round_info["aura"] = {"outcome": aura.outcome, "updated": aura.updated,
-                              "wall_clock_s": aura.wall_clock_s}
-        fresh = barriers_from_run(log, result, reqs)
-        known = carry_forward(known, fresh, run.pins())
-        (run.out / "summary.json").write_text(json.dumps(run.summary, indent=2) + "\n")
-    return run.finish(start)
-
-
-def run_pin_latest(run: Run, *, aura_arm: str = "aura_full_qwen14b", first: str = "") -> dict:
-    """Fix the target up front (latest), repair once, never search versions."""
-    log, result, reqs = run.aura_files(aura_arm)
-    run.prepare(reqs)
-    start = run.pins()
-    baseline = baseline_from_log(read_log(log))
-    barriers = [b for b in barriers_from_run(log, result, reqs) if b.kind == "code"]
-    if not barriers:
-        run.summary["stop"] = "no barrier"
-        return run.finish(start)
-    if first:
-        barriers.sort(key=lambda x: x.package != first.lower())
-    b = barriers[0]
-    pins = {name: (run.latest(name) or version) for name, version in b.plan.items()}
-    # DepBench-style: the target goes to latest and every other package may
-    # follow it (pip resolves, capped at the measurement date). Holding the
-    # rest at their pins makes most targets uninstallable before any repair.
-    others = [n for n in start if n.lower() not in {k.lower() for k in pins}]
-    cap_as_of(run, others)
-    label = f"{b.package} {b.current} -> {pins.get(b.package)} (latest)"
-    outcome = run.repair(label, pins, list(pins), baseline, tag=f"latest_{b.package}",
-                         unpin=others)
-    run.summary["rounds"].append({"round": 1, "attempts": [asdict(outcome)]})
-    return run.finish(start)
-
-
-def run_all_latest(run: Run, *, aura_arm: str = "aura_full_qwen14b") -> dict:
-    """RepoRescue's setting: drop every pin and let pip pick the newest set that
-    installs together (RepoRescue: "a fresh virtual environment with no version
-    pins"), then one repair. Pip may only pick releases out by the measurement
-    date, the same date every arm is scored against. The project keeps its
-    Python version (RepoRescue also moved Python to 3.13)."""
-    log, _, reqs = run.aura_files(aura_arm)
-    run.prepare(reqs)
-    start = run.pins()
-    baseline = baseline_from_log(read_log(log))
-    cap_as_of(run, start)
-    outcome = run.repair("all packages unpinned (pip resolves)", {}, list(start), baseline,
-                         tag="all_latest", unpin=list(start))
-    run.summary["rounds"].append({"round": 1, "attempts": [asdict(outcome)]})
-    return run.finish(start)
-
-
-ARMS = {"stride": run_stride, "pin_latest": run_pin_latest, "all_latest": run_all_latest}
-
-
-def _nullcontext():
-    import contextlib
-    return contextlib.nullcontext()
-
-
-def _aura_arm(name: str):
+def run_stride(run: Run, *, aura_arm: str = "aura_full_qwen14b",
+               time_budget_h: float = 10.0, max_tries_per_package: int = 6,
+               search_arm: str = "aura_linear_greedy", **_) -> dict:
+    """AURA's search with the agent at code barriers (stride.search)."""
     from evaluation.arms import by_name
-    return by_name(name)
+    from stride.search import Context, stride_search
+    run.prepare()
+    start = run.pins()
+    run.subject.frozen_baseline = str(run.baseline_file())
+    ctx = Context(run, max_tries_per_package=max_tries_per_package,
+                  time_budget_h=time_budget_h)
+    log = run.out / "search.jsonl"
+    with stride_search(ctx):
+        aura = run_aura_arm(run.subject, by_name(search_arm), run.workspace, log,
+                            index=run.index, timeout_s=int(time_budget_h * 3600),
+                            pip_cache=run.pip_cache)
+    run.summary["search"] = {"outcome": aura.outcome, "updated": aura.updated,
+                             "wall_clock_s": aura.wall_clock_s, "reason": aura.reason}
+    run.summary["tries"] = ctx.tries
+    return run.finish(start)
+
+
+def run_dependabot_agent(run: Run, *, aura_arm: str = "aura_full_qwen14b",
+                         passes: int = 3, **_) -> dict:
+    """Dependabot's proposals, one package at a time to its latest release (as of
+    the measurement date), each repaired by the agent. A bump that does not
+    install with the other pins is skipped, as Dependabot's pull request would
+    fail. Passes repeat until nothing more moves."""
+    run.prepare()
+    start = run.pins()
+    baseline = run.baseline_tests(aura_arm)
+    for p in range(1, passes + 1):
+        moved = 0
+        for name in sorted(run.pins(), key=str.lower):
+            current, latest = run.pins().get(name), run.latest(name)
+            if not current or not latest or not _newer(latest, current):
+                continue
+            result = run.repair(f"{name} {current} -> {latest}", {name: latest}, [name],
+                                baseline, tag=f"pass{p}_{name}")
+            moved += bool(result.accepted)
+        run.summary["rounds"].append({"round": p, "moved": moved})
+        if not moved:
+            break
+    return run.finish(start)
+
+
+def run_all_latest(run: Run, *, aura_arm: str = "aura_full_qwen14b", **_) -> dict:
+    """RepoRescue's setting: drop every pin and let pip install the newest set
+    that works together (no package below its baseline version, nothing newer
+    than the measurement date), then the agent repairs."""
+    run.prepare()
+    start = run.pins()
+    baseline = run.baseline_tests(aura_arm)
+    cap_as_of(run, start)
+    run.repair("all packages unpinned (pip resolves)", {}, list(start), baseline,
+               tag="all_latest", unpin=list(start))
+    return run.finish(start)
+
+
+def run_agent_alone(run: Run, *, aura_arm: str = "aura_full_qwen14b", **_) -> dict:
+    from stride.alone import agent_alone
+    run.prepare()
+    start = run.pins()
+    caps = cap_as_of(run, start)
+    agent_alone(run, run.baseline_tests(aura_arm), caps)
+    return run.finish(start)
+
+
+def _newer(a: str, b: str) -> bool:
+    from aura.reqfile import safe_parse_version
+    va, vb = safe_parse_version(a), safe_parse_version(b)
+    return bool(va and vb and va > vb)
+
+
+ARMS = {"stride": run_stride, "agent_alone": run_agent_alone,
+        "dependabot_agent": run_dependabot_agent, "all_latest": run_all_latest}

@@ -47,20 +47,16 @@ def cmd_run(args) -> None:
               pip_cache=args.pip_cache, use_triage=not args.no_triage,
               max_attempts=args.max_attempts, patience=args.patience)
     kwargs = {"aura_arm": args.aura_arm}
-    if args.arm == "pin_latest":
-        kwargs["first"] = args.first
     if args.arm == "stride":
-        kwargs.update(max_rounds=args.rounds, barriers_per_round=args.barriers_per_round,
-                      step=args.step, first=args.first, skip_aura=args.skip_aura,
-                      rerun=args.rerun, time_budget_h=args.time_budget_h)
+        kwargs.update(time_budget_h=args.time_budget_h,
+                      max_tries_per_package=args.max_tries)
     with subject_environment(subject):
         summary = ARMS[args.arm](run, **kwargs)
     print(json.dumps({k: summary.get(k) for k in ("subject", "arm", "agent")}, indent=1))
-    for r in summary.get("rounds", []):
-        for a in r.get("attempts", []):
-            print(f"round {r['round']}: {a['label']:45} accepted={a['accepted']} "
-                  f"reason={a['reason']} files={a['files_changed']} "
-                  f"+{a['lines_added']}/-{a['lines_removed']}")
+    for a in summary.get("repairs", []):
+        print(f"{a['label'][:55]:55} accepted={a['accepted']} reason={a['reason']} "
+              f"calls={(a.get('agent') or {}).get('calls', 0)} "
+              f"+{a['lines_added']}/-{a['lines_removed']}")
     for key in ("age_start", "age_end"):
         age = summary.get(key) or {}
         print(f"{key}: at_latest={age.get('at_latest_pct')}% "
@@ -90,10 +86,14 @@ def cmd_check(args) -> None:
     index = PackageIndex()
     probe = behaviour.probe_for(subject.name)
 
-    def setup(name: str, patch: Path | None = None):
+    baseline_reqs = Path(args.aura_dir) / subject.name / f"{subject.name}.baseline.txt"
+
+    def setup(name: str, patch: Path | None = None, start: Path | None = None):
         ws = work / name
         prepare_workspace(subject, ws, repo_cache)
-        shutil.copy(aura_reqs, ws / subject.requirements_file)   # STRIDE's start state
+        # The run's start state: the baseline for the current arms, AURA's final
+        # state for runs from before the revamp.
+        shutil.copy(start or aura_reqs, ws / subject.requirements_file)
         if patch is not None:
             done = subprocess.run(["git", "apply", "--whitespace=nowarn", str(patch)],
                                   cwd=ws, capture_output=True, text=True)
@@ -106,8 +106,15 @@ def cmd_check(args) -> None:
         return ws, env, error
 
     def accepted_code(summary: dict) -> bool:
-        return any(a.get("accepted") and a.get("files_changed")
-                   for r in summary.get("rounds", []) for a in r.get("attempts", []))
+        attempts = [a for r in summary.get("rounds", []) for a in r.get("attempts", [])]
+        attempts += summary.get("repairs", [])
+        if any(a.get("accepted") and a.get("files_changed") for a in attempts):
+            return True
+        return bool((summary.get("alone") or {}).get("accepted_any"))
+
+    def start_of(summary: dict) -> Path:
+        new = "repairs" in summary or "alone_attempts" in summary
+        return baseline_reqs if new else aura_reqs
 
     runs = []
     for path in sorted(results.glob("*/summary.json")):
@@ -130,7 +137,8 @@ def cmd_check(args) -> None:
             print(f"probe on the original code: {str(old_value)[:200]}")
         for run in runs:
             patch = run / "patch_total.diff"
-            ws, env, error = setup(run.name, patch)
+            ws, env, error = setup(run.name, patch,
+                                   start_of(json.loads((run / "summary.json").read_text())))
             report = {"run": run.name, "probe": probe.name if probe else None}
             if env is None:
                 report["error"] = error[-800:]
@@ -199,31 +207,23 @@ def main(argv=None) -> None:
 
     r = sub.add_parser("run", help="run one arm on one subject")
     r.add_argument("subject")
-    r.add_argument("--arm", default="stride", choices=["stride", "pin_latest", "all_latest"])
+    r.add_argument("--arm", default="stride",
+                   choices=["stride", "agent_alone", "dependabot_agent", "all_latest"])
     r.add_argument("--agent", default="mini-swe-agent",
                    choices=["mini-swe-agent", "codex", "opencode"])
     r.add_argument("--model", default="ollama_chat/qwen3-coder:30b")
     r.add_argument("--step-limit", type=int, default=60)
     r.add_argument("--agent-minutes", type=int, default=60)
     r.add_argument("--no-triage", action="store_true",
-                   help="skip dependency triage: every failing step goes to the agent "
-                        "(the DepBench-style baseline)")
-    r.add_argument("--rounds", type=int, default=10,
-                   help="safety cap: stride stops earlier when a round crosses nothing")
+                   help="skip dependency triage before the agent")
     r.add_argument("--max-attempts", type=int, default=5,
                    help="agent calls per repair, each building on the last (every arm)")
     r.add_argument("--patience", type=int, default=2,
                    help="stop retrying after this many calls without fewer failing tests")
-    r.add_argument("--time-budget-h", type=float, default=8.0,
-                   help="stride starts no new repair after this many hours")
-    r.add_argument("--barriers-per-round", type=int, default=3)
-    r.add_argument("--step", default="smallest", choices=["smallest", "aura_plan"],
-                   help="jump size across a barrier (stride arm)")
-    r.add_argument("--first", default="", help="package whose barrier to try first")
-    r.add_argument("--rerun", default="scoped", choices=["scoped", "full"],
-                   help="after a code change, search only affected packages (scoped) or all")
-    r.add_argument("--skip-aura", action="store_true",
-                   help="stop after the first code change (smoke test)")
+    r.add_argument("--max-tries", type=int, default=6,
+                   help="stride: versions the agent may try per package")
+    r.add_argument("--time-budget-h", type=float, default=10.0,
+                   help="stride: the search's time budget")
     r.add_argument("--out", default=str(ROOT / "results"))
     r.add_argument("--work", default=str(ROOT / "workspaces"))
     r.add_argument("--repo-cache", default="")

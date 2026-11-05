@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import time
@@ -53,6 +54,15 @@ class RepairResult:
     dropped: list[str] = field(default_factory=list)         # packages removed to cross
     attempts: list[dict] = field(default_factory=list)       # one entry per agent call
     stop: str = ""                                           # why the retries ended
+    weakened_tests: list[str] = field(default_factory=list)  # test-rule violations
+    tests_changed: list[str] = field(default_factory=list)   # test files edited (setup)
+    test_aware: list[str] = field(default_factory=list)      # source lines naming mocks/pytest
+    added_test_deps: dict[str, str] = field(default_factory=dict)  # installed for the tests
+
+
+def canonical(name: str) -> str:
+    from packaging.utils import canonicalize_name
+    return canonicalize_name(name)
 
 
 def git(root: Path, *args: str, check: bool = False) -> str:
@@ -173,10 +183,15 @@ def call_sites(root: Path, packages: list[str]) -> list[str]:
     return sorted(set(hits))
 
 
-def unpinned(reqfile: ReqFile, names) -> ReqFile:
+def unpinned(reqfile: ReqFile, names, floors: dict[str, str] | None = None) -> ReqFile:
     """A copy with these packages' version specifiers removed, names kept, so
     the installer still installs them and picks the versions. (AURA's
-    ``without_pins`` deletes the lines, which installs nothing for them.)"""
+    ``without_pins`` deletes the lines, which installs nothing for them.)
+
+    ``floors``: a package's current version becomes its lower bound, so pip can
+    move it forward but never back (an upgrade must not downgrade: freeing
+    graphene let pip fall back to 1.4.1 to fit graphql-core 3.0)."""
+    floors = {canonical(k): v for k, v in (floors or {}).items()}
     from packaging.requirements import Requirement
     from packaging.utils import canonicalize_name
     drop = {canonicalize_name(n) for n in names}
@@ -188,11 +203,44 @@ def unpinned(reqfile: ReqFile, names) -> ReqFile:
         extras = f"[{','.join(sorted(req.extras))}]" if req.extras else ""
         marker = f" ; {req.marker}" if req.marker else ""
         indent = line.raw[: len(line.raw) - len(line.raw.lstrip())]
-        line._override = f"{indent}{req.name}{extras}{marker}{line.inline_comment}"
+        floor = floors.get(canonicalize_name(req.name))
+        spec = f">={floor}" if floor else ""
+        line._override = f"{indent}{req.name}{extras}{spec}{marker}{line.inline_comment}"
         line.requirement = Requirement(
-            f"{req.name}{extras}" + (f"; {req.marker}" if req.marker else ""))
+            f"{req.name}{extras}{spec}" + (f"; {req.marker}" if req.marker else ""))
     return ReqFile.from_text(out.to_text())
 
+
+_MISSING = [
+    re.compile(r"No module named '([A-Za-z0-9_]+)"),
+    re.compile(r"requires the ([A-Za-z0-9_.-]+) package"),
+    re.compile(r"pip install ([A-Za-z0-9_.-]+)"),
+]
+_MODULE_DIST = {"yaml": "pyyaml", "PIL": "pillow", "cv2": "opencv-python",
+                "sklearn": "scikit-learn", "bs4": "beautifulsoup4", "dateutil": "python-dateutil"}
+
+
+def _install_missing(env, output: str, index, python_version: str,
+                     workspace: Path) -> dict[str, str]:
+    """Install the packages a test run says are missing, newest as of the
+    measurement date. Never the project's own modules."""
+    added: dict[str, str] = {}
+    if index is None:
+        return added
+    wanted = []
+    for pattern in _MISSING:
+        wanted += pattern.findall(output or "")
+    for module in dict.fromkeys(w.split(".")[0] for w in wanted):
+        if (workspace / module).exists() or (workspace / f"{module}.py").exists():
+            continue
+        dist = _MODULE_DIST.get(module, module).lower().replace("_", "-")
+        try:
+            version = index.newest_at(dist, MEASURED_AS_OF, python_version)
+        except Exception:
+            version = None
+        if version and env.pip_install([f"{dist}=={version}"])[1] == 0:
+            added[dist] = version
+    return added
 
 def repair_round(*, label: str, project: str, workspace: Path, requirements_file: str,
                  pins: dict[str, str], moved: list[str], config: dict, spec: EnvSpec,
@@ -200,7 +248,7 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
                  baseline: dict, agent: CodeAgent, out_dir: Path,
                  tolerance: float = 0.01, use_triage: bool = True,
                  drop: list[str] | None = None, max_attempts: int = 5,
-                 patience: int = 2) -> RepairResult:
+                 patience: int = 2, allow_test_setup: bool = True) -> RepairResult:
     started = time.time()
     out_dir.mkdir(parents=True, exist_ok=True)
     result = RepairResult(label=label, pins=dict(pins))
@@ -212,7 +260,11 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
     target = reqfile.with_pins(pins).with_added_pins(
         {k: v for k, v in pins.items() if k.lower() not in present})
     if unpin:
-        target = unpinned(target, [u for u in unpin if u.lower() in present])
+        current = {canonical(k): v for k, v in reqfile.pins().items()}
+        names = [u for u in unpin if u.lower() in present]
+        target = unpinned(target, names,
+                          floors={u: current[canonical(u)] for u in names
+                                  if canonical(u) in current})
     if drop:   # an install barrier: the blocking package goes, its uses get replaced
         target = target.without_pins([d for d in drop if d.lower() in present])
         result.dropped = sorted(d for d in drop if d.lower() in present)
@@ -247,6 +299,23 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
         passed=not baseline.get("failing"), failing=set(baseline.get("failing") or []),
         metrics=dict(baseline.get("metrics") or {}), counts=dict(baseline.get("counts") or {}))
     before = validator.run(env.python)
+    added: dict[str, str] = {}
+    for _ in range(3):            # one missing package can hide the next
+        more = _install_missing(env, before.output, index, python_version, workspace)
+        more = {k: v for k, v in more.items() if k not in added}
+        if not more:
+            break
+        added.update(more)
+        before = validator.run(env.python)
+    if added:
+        # The tests need a package nothing declared (starlette's TestClient
+        # needs httpx since 0.21). Installed and pinned for every arm alike.
+        result.added_test_deps = added
+        target = target.with_added_pins(added)
+        target.save(req_path)
+        result.pins.update(added)
+        git(workspace, "add", requirements_file)
+        git(workspace, "commit", "-q", "--amend", "--no-edit")
     result.failing_before = sorted(before.failing)
     accepted, new, _, _ = validator.judge(before)
     if accepted:
@@ -294,7 +363,15 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
     else:
         test_command = f"python -m pytest {' '.join(targets)} -q -x"
     protected = guard.protected_files(workspace, targets, [requirements_file])
+    # Requirements are always locked. Tests are locked too unless the agent may
+    # change their setup; then the test rule checks them after each attempt.
+    if allow_test_setup:
+        test_files = [p for p in protected if p.name != Path(requirements_file).name]
+        protected = [p for p in protected if p.name == Path(requirements_file).name]
+    else:
+        test_files = []
     protected_rel = [str(p.relative_to(workspace)) for p in protected]
+    test_rel = [str(p.relative_to(workspace)) for p in test_files]
 
     shims = guard.pip_blocker(workspace.parent / f".stride_shims_{workspace.name}")
     agent_env = guard.agent_environment(str(Path(env.python).parent), shims)
@@ -308,13 +385,15 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
     start_new = len(new or before.failing)
     attempts = _agent_attempts(
         task=task, workspace=workspace, protected=protected, protected_rel=protected_rel,
+        test_rel=test_rel,
         agent=agent, agent_env=agent_env, out_dir=out_dir, validator=validator, env=env,
         frozen_before=frozen_before, known_failing=known_failing, start_new=start_new,
         max_attempts=max_attempts, patience=patience)
     last, stop = attempts["last"], attempts["stop"]
     for key in ("failing_after", "new_failures", "tampered", "skips_added",
                 "packages_changed", "lost_symbols", "added_symbols", "fixed_baseline",
-                "files_changed", "lines_added", "lines_removed"):
+                "files_changed", "lines_added", "lines_removed", "weakened_tests",
+                "tests_changed", "test_aware"):
         setattr(result, key, last[key])
     result.scope_creep = bool(result.fixed_baseline and result.added_symbols)
     result.agent = attempts["agent"]
@@ -351,12 +430,14 @@ def repair_round(*, label: str, project: str, workspace: Path, requirements_file
 
 WHY = {
     "tests_still_fail": "some tests still fail",
-    "edited_protected_files": "it changed protected files (tests or requirements)",
+    "edited_protected_files": "it changed protected files (the requirements)",
+    "weakened_tests": "it changed what the tests check (removed or edited assertions, "
+                      "deleted tests, or added skips)",
     "added_skips": "it added skip markers to tests",
     "removed_code": "it deleted or disabled existing functions, classes or methods",
     "changed_packages": "it changed the installed packages",
 }
-UNDONE = {"edited_protected_files", "added_skips", "removed_code"}
+UNDONE = {"edited_protected_files", "added_skips", "removed_code", "weakened_tests"}
 
 
 def retry_prompt(task: str, *, attempt: int, max_attempts: int, reason: str,
@@ -387,7 +468,7 @@ def _snapshot(workspace: Path, protected_rel: list[str], message: str) -> None:
     git(workspace, "commit", "-qm", message, "--allow-empty")
 
 
-def _agent_attempts(*, task, workspace, protected, protected_rel, agent, agent_env,
+def _agent_attempts(*, task, workspace, protected, protected_rel, test_rel=(), agent, agent_env,
                     out_dir, validator, env, frozen_before, known_failing, start_new,
                     max_attempts, patience) -> dict:
     pin_commit = git(workspace, "rev-parse", "HEAD").strip()
@@ -395,7 +476,8 @@ def _agent_attempts(*, task, workspace, protected, protected_rel, agent, agent_e
                        "completion_tokens": 0, "seconds": 0.0}
     best, stale, prompt, last, stop = start_new, 0, task, None, ""
     excludes = [f":(exclude){p}" for p in protected_rel]
-    shape_start = guard.code_shape(workspace, protected_rel)   # before any attempt
+    shape_start = guard.code_shape(workspace, protected_rel + list(test_rel))
+    tests_start = guard.test_shape(workspace, list(test_rel))
     for k in range(1, max_attempts + 1):
         here = out_dir / f"attempt{k}"
         here.mkdir(parents=True, exist_ok=True)
@@ -410,9 +492,10 @@ def _agent_attempts(*, task, workspace, protected, protected_rel, agent, agent_e
         after = validator.run(env.python)
         (here / "tests_after.txt").write_text(after.output[-20000:])
         ok, new_failures, drifted, _ = validator.judge(after)
-        shape_after = guard.code_shape(workspace, protected_rel)
-        files, added, removed = diff_stats(git(workspace, "diff", pin_commit, "--", ".",
-                                               *excludes))
+        shape_after = guard.code_shape(workspace, protected_rel + list(test_rel))
+        total = git(workspace, "diff", pin_commit, "--", ".", *excludes)
+        files, added, removed = diff_stats(total)
+        changed_now = set(git(workspace, "diff", "--name-only", pin_commit).split())
         last = {
             "failing_after": sorted(after.failing),
             "new_failures": new_failures + drifted,
@@ -424,11 +507,17 @@ def _agent_attempts(*, task, workspace, protected, protected_rel, agent, agent_e
             "added_symbols": guard.added_symbols(shape_start, shape_after),
             "fixed_baseline": sorted(set(known_failing) - set(after.failing)),
             "files_changed": files, "lines_added": added, "lines_removed": removed,
+            "weakened_tests": guard.weakened_tests(
+                tests_start, guard.test_shape(workspace, list(test_rel))),
+            "tests_changed": sorted(t for t in test_rel if t in changed_now),
+            "test_aware": guard.test_aware_lines(total),
         }
         if run.exit_status == "crashed" and not step_diff:
             reason = "agent_error"             # infrastructure, not a failed repair
         elif tampered:
             reason = "edited_protected_files"
+        elif last["weakened_tests"]:
+            reason = "weakened_tests"
         elif last["skips_added"]:
             reason = "added_skips"
         elif last["packages_changed"]:
@@ -458,6 +547,7 @@ def _agent_attempts(*, task, workspace, protected, protected_rel, agent, agent_e
             stop = "no_change"
             break
         detail = (tampered if reason == "edited_protected_files" else
+                  last["weakened_tests"] if reason == "weakened_tests" else
                   last["lost_symbols"] if reason == "removed_code" else [])
         kept = reason not in UNDONE
         if kept:

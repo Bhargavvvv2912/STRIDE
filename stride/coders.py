@@ -47,11 +47,15 @@ def ollama_base() -> str:
 
 SYSTEM_EXTRA = """
 Rules for this task:
-- Do NOT edit, delete or add test files, test configuration, or requirements files.
-  They are read-only; edits to them will be rejected.
-- Do NOT install, upgrade or downgrade packages. The environment is fixed.
-- Do NOT skip, xfail or silence tests, and do not weaken assertions.
-- Change the project's own source code, as little as needed, keeping its behaviour.
+- Requirements files are read-only. Do NOT install, upgrade or downgrade packages.
+- You may change how tests are SET UP when the upgrade requires it: imports,
+  fixtures, mocks/fakes, conftest.py, version checks in test setup.
+- Do NOT change what tests CHECK: no removing or editing assertions or
+  pytest.raises blocks, no deleting or renaming tests, no skip/xfail, no test
+  selection in the pytest configuration. Such edits are detected and rejected.
+- Do NOT make project code behave differently under tests (no checks for mocks or
+  for pytest in source code).
+- Change the project's own source code as little as needed, keeping its behaviour.
 
 Editing tips:
 - For any change spanning more than one line, rewrite the whole file with a heredoc:
@@ -398,7 +402,21 @@ class OpenCode(CliAgent):
                      "OPENCODE_DISABLE_AUTOUPDATE": "1"}
 
 
-AGENTS = {"mini-swe-agent": MiniSweAgent, "codex": CodexCli, "opencode": OpenCode}
+class NoopAgent(CodeAgent):
+    """Changes nothing. For smoke tests of the harness without a model."""
+    name = "noop"
+
+    def __init__(self, **_):
+        self.model = ""
+
+    def run(self, task, workdir, env, out_dir) -> AgentRun:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "trajectory.jsonl").write_text("")
+        return AgentRun(exit_status="Submitted", trajectory=str(out_dir / "trajectory.jsonl"))
+
+
+AGENTS = {"mini-swe-agent": MiniSweAgent, "codex": CodexCli, "opencode": OpenCode,
+          "noop": NoopAgent}
 
 
 def build(name: str, **kwargs) -> CodeAgent:

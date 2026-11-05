@@ -26,8 +26,7 @@ cd "$(dirname "$0")/../.."
 
 MODELS=${MODELS:-"qwen3-coder:30b qwen3-coder-next:latest"}
 AGENTS=${AGENTS:-"mini-swe-agent codex opencode"}
-ARMS=${ARMS:-"stride pin_latest all_latest"}
-ROUNDS=${ROUNDS:-10}  # safety cap; stride stops when a round crosses nothing
+ARMS=${ARMS:-"stride agent_alone dependabot_agent all_latest"}
 PARALLEL=${PARALLEL:-4}
 SKIP=${SKIP:-0}
 PREVS=()
@@ -45,10 +44,7 @@ for SUBJECT in "$@"; do
         [ "$N" -le "$SKIP" ] && continue
         EXTRA=(--agent "$AGENT")
         RUN="${ARM}__${AGENT}__${MODEL//:/-}"
-        case $ARM in
-          stride) EXTRA+=(--rounds "$ROUNDS") ;;
-          *)      EXTRA+=(--no-triage); RUN+="__notriage" ;;   # the published, agent-only setting
-        esac
+        # Every arm gets the same harness, dependency triage included.
         if grep -qs '"finished"' "results/$SUBJECT/$RUN/summary.json"; then
           echo "done already: $SUBJECT $RUN"; continue
         fi
