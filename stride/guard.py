@@ -337,3 +337,100 @@ def test_aware_lines(diff: str) -> list[str]:
                      r"test environment|under test", line):
             hits.append(line[1:].strip()[:160])
     return hits
+
+
+# ------------------------------------------------------ shared interpreter
+
+def _interpreter_paths(python: str) -> tuple[str, str] | None:
+    """The stdlib and purelib folders of ``python``. The answer goes to a file,
+    not stdout, so a sitecustomize or .pth file that prints can't change it."""
+    import json
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        answer = os.path.join(tmp, "paths.json")
+        out = subprocess.run([python, "-I", "-c",
+                              "import json, sys, sysconfig; p = sysconfig.get_paths(); "
+                              "open(sys.argv[1], 'w').write(json.dumps([p['stdlib'], p['purelib']]))",
+                              answer], capture_output=True, text=True)
+        if out.returncode != 0 or not os.path.exists(answer):
+            return None
+        try:
+            stdlib, purelib = json.loads(open(answer).read())
+        except ValueError:
+            return None
+    return stdlib, purelib
+
+
+_HOOKS = re.compile(r"^(sitecustomize|usercustomize)\.py$|\.pth$")
+
+
+def _interpreter_files(paths: tuple[str, str] | None,
+                       env_hooks: bool = True) -> dict[str, tuple[int, int]]:
+    """Files an agent must never touch outside its workspace: the base Python
+    every environment is built from (a sitecustomize.py there loads into every
+    run), and the startup hooks of this run's environment (``*.pth``,
+    sitecustomize/usercustomize in its site-packages)."""
+    if not paths:
+        return {}
+    stdlib, purelib = paths
+    files: dict[str, tuple[int, int]] = {}
+    for root, dirs, names in os.walk(stdlib):
+        dirs[:] = [d for d in dirs if d not in ("__pycache__", "site-packages")]
+        for n in names:
+            p = os.path.join(root, n)
+            try:
+                s = os.stat(p)
+            except OSError:
+                continue
+            files[p] = (s.st_size, s.st_mtime_ns)
+    sites = {os.path.join(stdlib, "site-packages")} | ({purelib} if env_hooks else set())
+    for site in sites:
+        try:
+            names = os.listdir(site)
+        except OSError:
+            continue
+        for n in names:
+            if _HOOKS.search(n):
+                p = os.path.join(site, n)
+                try:
+                    s = os.stat(p)
+                except OSError:
+                    continue
+                files[p] = (s.st_size, s.st_mtime_ns)
+    return files
+
+
+class InterpreterWatch:
+    """Around one agent call: which interpreter files it added, changed or
+    removed. Nothing is deleted except a startup hook (sitecustomize.py,
+    usercustomize.py, *.pth) that the call added; everything else is only
+    reported, and the caller rejects the call. The folders are resolved once,
+    before the call, and the same folders are compared after it."""
+
+    def __init__(self, python: str, env_hooks: bool = True):
+        self.python, self.env_hooks = python, env_hooks
+        self.paths = None
+        self.before: dict = {}
+        self.changed: list[str] = []
+
+    def __enter__(self):
+        self.paths = _interpreter_paths(self.python)
+        self.before = _interpreter_files(self.paths, self.env_hooks)
+        return self
+
+    def __exit__(self, *exc):
+        if not self.before:
+            return False
+        after = _interpreter_files(self.paths, self.env_hooks)
+        added = sorted(set(after) - set(self.before))
+        edited = sorted(p for p in after if p in self.before and after[p] != self.before[p])
+        removed = sorted(set(self.before) - set(after))
+        for p in added:
+            if _HOOKS.search(os.path.basename(p)):
+                try:
+                    os.remove(p)
+                except OSError:
+                    pass
+        self.changed = ([f"added {p}" for p in added] + [f"edited {p}" for p in edited]
+                        + [f"removed {p}" for p in removed])
+        return False

@@ -189,6 +189,9 @@ class MiniSweAgent(CodeAgent):
     def run(self, task: str, workdir: Path, env: dict[str, str], out_dir: Path) -> AgentRun:
         os.environ.setdefault("MSWEA_COST_TRACKING", "ignore_errors")
         os.environ.setdefault("MSWEA_SILENT_STARTUP", "1")
+        # A hung model server: give up in about 15 minutes (3 tries of 300 s),
+        # not mini-swe-agent's default 10 tries of 600 s (about 2 hours).
+        os.environ.setdefault("MSWEA_MODEL_RETRY_STOP_AFTER_ATTEMPT", "3")
         from minisweagent.environments.local import LocalEnvironment
         from minisweagent.models.litellm_textbased_model import LitellmTextbasedModel
 
@@ -200,7 +203,8 @@ class MiniSweAgent(CodeAgent):
         kwargs = dict(model_cfg.pop("model_kwargs", {}) or {})
         kwargs.update({"temperature": self.temperature})
         if self.model.startswith("ollama"):
-            kwargs.update({"api_base": ollama_base(), "num_ctx": self.num_ctx})
+            kwargs.update({"api_base": ollama_base(), "num_ctx": self.num_ctx,
+                           "timeout": 300})
         model = LitellmTextbasedModel(model_name=self.model, model_kwargs=kwargs,
                                       cost_tracking="ignore_errors", **model_cfg)
         environment = LocalEnvironment(cwd=str(workdir), env=env,

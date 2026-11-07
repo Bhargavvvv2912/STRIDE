@@ -24,7 +24,11 @@ from aura.reqfile import ReqFile
 from aura.validation import ValidationResult, Validator
 
 from stride import guard
-from stride.repair import build_environment, code_diff, diff_stats, git
+from stride.repair import build_environment, code_diff, diff_stats, git, run_agent
+
+# One call here has to plan and upgrade the whole project, where a repair call
+# in the other arms fixes one bump; 60 steps ran out while exploring.
+ALONE_STEP_LIMIT = 150
 
 
 def alone_prompt(*, project: str, requirements: str, python: str, test_command: str,
@@ -63,6 +67,11 @@ echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT
 
 def _feedback(prompt: str, k: int, n: int, accepted: bool, reason: str, detail: list[str],
               mean_behind: float | None) -> str:
+    if reason == "no_change":
+        status = ("Your last call ended without changing any file, so nothing was "
+                  "upgraded. Continue from where you stopped: write the versions you "
+                  f"choose into the requirements file early, then fix the code.")
+        return f"{prompt}\n--- Call {k} of {n} ---\n{status}\n"
     if accepted:
         status = (f"Your last result was checked and accepted (mean releases behind "
                   f"latest: {mean_behind}). If any package can go further, continue; "
@@ -117,22 +126,45 @@ def agent_alone(run, baseline: dict, caps: dict[str, str]) -> None:
     declared = list(ReqFile.load(ws / reqname).pins())
     best = version_age_report(run.index, ReqFile.load(ws / reqname).pins())[
         "mean_releases_behind"]
-    stale, stop, attempts = 0, "", []
+    if hasattr(run.agent, "step_limit"):
+        run.agent.step_limit = max(run.agent.step_limit, ALONE_STEP_LIMIT)
+    stale, stop, attempts, empty = 0, "", [], 0
     for k in range(1, run.max_attempts + 1):
         here = run.out / f"alone{k}"
         here.mkdir(parents=True, exist_ok=True)
         (here / "task.md").write_text(prompt)
-        agent_run = run.agent.run(prompt, ws, agent_env, here)
+        def changed() -> bool:
+            git(ws, "add", "--intent-to-add", "--", ".")
+            return bool(git(ws, "diff", "HEAD"))
+        agent_run, interp = run_agent(run.agent, prompt, ws, agent_env, here,
+                                      work_env.python, changed=changed,
+                                      env_hooks=False)   # pip is allowed here
         git(ws, "add", "--intent-to-add", "--", ".")
         step = git(ws, "diff", "HEAD")
         (here / "patch.diff").write_text(step)
         entry = {"attempt": k, "agent": {**asdict(agent_run), "calls": 1},
-                 "changed": bool(step)}
+                 "changed": bool(step), "shared_python": interp}
+        if agent_run.exit_status == "crashed" and not step:
+            entry["reason"] = "agent_error"        # infrastructure, even after a retry
+            attempts.append(entry)
+            stop = "agent_error"
+            break
+        if interp:
+            entry["reason"] = "edited_shared_python"
+            attempts.append(entry)
+            stop = "edited_shared_python"          # the environment can't be trusted
+            break
         if not step:
+            # One empty call gets a nudge to continue; two in a row end the run.
             entry["reason"] = "no_change"
             attempts.append(entry)
-            stop = "no_change"
-            break
+            empty += 1
+            if empty >= 2 or k == run.max_attempts:
+                stop = "no_change"
+                break
+            prompt = _feedback(base, k + 1, run.max_attempts, False, "no_change", [], None)
+            continue
+        empty = 0
         reason, detail, mean = _check(run, ws, reqname, declared, validator, config,
                                       tests_start, test_rel, shape_start, start_commit)
         entry.update({"reason": reason, "detail": detail[:30], "mean_behind": mean})

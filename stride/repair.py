@@ -437,7 +437,23 @@ WHY = {
     "removed_code": "it deleted or disabled existing functions, classes or methods",
     "changed_packages": "it changed the installed packages",
 }
-UNDONE = {"edited_protected_files", "added_skips", "removed_code", "weakened_tests"}
+UNDONE = {"edited_protected_files", "added_skips", "removed_code", "weakened_tests",
+          "edited_shared_python"}
+
+
+def run_agent(agent, prompt, workspace, agent_env, here, python: str,
+              changed=lambda: True, env_hooks: bool = True) -> tuple[AgentRun, list[str]]:
+    """One agent call, watched for edits to the shared interpreter. A call that
+    crashed (model server down or timing out) without changing anything is
+    retried once after a pause; ``extra["retried"]`` records it."""
+    with guard.InterpreterWatch(python, env_hooks) as watch:
+        run = agent.run(prompt, workspace, agent_env, here)
+        if run.exit_status == "crashed" and not changed():
+            first = run.error
+            time.sleep(60)
+            run = agent.run(prompt, workspace, agent_env, here)
+            run.extra = {**(run.extra or {}), "retried": True, "first_error": first[-500:]}
+    return run, watch.changed
 
 
 def retry_prompt(task: str, *, attempt: int, max_attempts: int, reason: str,
@@ -483,7 +499,8 @@ def _agent_attempts(*, task, workspace, protected, protected_rel, test_rel=(), a
         here.mkdir(parents=True, exist_ok=True)
         (here / "task.md").write_text(prompt)
         with guard.Lock(workspace, protected) as lock:
-            run: AgentRun = agent.run(prompt, workspace, agent_env, here)
+            run, interp = run_agent(agent, prompt, workspace, agent_env, here, env.python,
+                                    changed=lambda: bool(code_diff(workspace, protected_rel)))
             tampered = lock.tampered()
         git(workspace, "add", "--intent-to-add", "--", ".", *excludes)   # new files count
         step_diff = code_diff(workspace, protected_rel)    # this call's change
@@ -511,9 +528,12 @@ def _agent_attempts(*, task, workspace, protected, protected_rel, test_rel=(), a
                 tests_start, guard.test_shape(workspace, list(test_rel))),
             "tests_changed": sorted(t for t in test_rel if t in changed_now),
             "test_aware": guard.test_aware_lines(total),
+            "shared_python": interp,
         }
         if run.exit_status == "crashed" and not step_diff:
             reason = "agent_error"             # infrastructure, not a failed repair
+        elif interp:
+            reason = "edited_shared_python"    # outside the repository: never kept
         elif tampered:
             reason = "edited_protected_files"
         elif last["weakened_tests"]:
@@ -544,7 +564,7 @@ def _agent_attempts(*, task, workspace, protected, protected_rel, test_rel=(), a
         if reason in ("repaired", "no_code_change_needed"):
             stop = "accepted"
             break
-        if reason in ("agent_error", "changed_packages"):
+        if reason in ("agent_error", "changed_packages", "edited_shared_python"):
             stop = reason                       # the environment can't be trusted
             break
         if not step_diff and not tampered:
